@@ -1,0 +1,114 @@
+# 多边形面积练习 Demo — v1
+
+- Status: confirmed
+- Supersedes: none
+- Date: 2026-11-10
+- Session: fab477d6-36b6-4a67-8f33-b1ddf1cee503
+- Trigger: initial — 大纲 v0.2 确认后的首次拆分
+
+## 背景
+
+- 题面：[docs/assignment/assignment.md](../../../docs/assignment/assignment.md)（选题一）。评分重心依次为：工程链路与可靠性、自动化测试、部署与排障、AI 协同记录、学生体验。
+- 设计依据：[docs/project-outline.md](../../../docs/project-outline.md) v0.2（已确认）。关键决定：
+  - 技术栈：Node.js + TypeScript；Fastify + Drizzle + PostgreSQL；React + Vite；Vitest 连真实 Postgres；Docker Compose；Render（Web + 免费 Postgres，约 30 天有效期，覆盖 11/13 展示）。
+  - 体验：图形小镇建造师，4 关 × 3 题，向导是带卷尺的小熊"圆圆"；只填数字、单位固定；允许跳过；第 4、10 题有 AI 辅助动画 + TTS 视频解析。
+  - 规则：题目四种状态（unanswered / wrong / skipped / solved）；本关题目都"处理过"即可进入下一关，3 题全对才点亮建筑；学生主动结束会话，结束后提交返回 409。
+  - 统计：由会话题目快照、作答、跳过、学习事件四类数据经 `summarize()` 纯函数计算；"一次做对"要求首次有效作答正确且答对前未打开解析。
+  - 解析内容接口不记录行为；学习行为由前端在面板展开、视频 play / ended 时上报 `POST /events`。
+- 开发流程：每个 change 对应一个 OpenSpec change（`openspec/changes/<ref>`）、一个分支、一个 PR。
+- 时间：11/10 完成 A–D；11/11 完成 E、F、G（首次上线）；11/12 完成 H、I、J 并演练；11/13 展示。
+
+## Changes
+
+| Order | ID | Change | Ref | Depends on | Status |
+|---|---|---|---|---|---|
+| 1 | A | 项目骨架 | `project-scaffold` | — | planned |
+| 2 | B | 数据模型与题库 | `data-model-question-bank` | A | planned |
+| 3 | C | 判题核心 | `grading-core` | B | planned |
+| 4 | D | 练习会话 API | `practice-session-api` | C | planned |
+| 5 | E | 答题主流程前端 | `practice-ui` | D | planned |
+| 6 | F | 学习总结页 | `summary-ui` | D, E | planned |
+| 7 | G | 首次上线 Render | `deploy-render` | E | planned |
+| 8 | H | 图形小镇与圆圆 | `town-and-companion` | E | planned |
+| 9 | I | 视频解析 | `video-explanations` | E | planned |
+| 10 | J | 文档与交付 | `docs-and-delivery` | A–I | planned |
+
+### A — 项目骨架
+
+- Goal: 搭好能持续开发、测试、启动的工程底座。
+- Scope: in — `server/`（Fastify + TS）与 `web/`（React + Vite + TS）目录、根目录脚本、`docker-compose.yml`（Postgres + 应用）、`.env.example`、`GET /api/health`（含数据库连通检查）、pino 日志、Vitest 配置、GitHub Actions 骨架（Postgres service）。out — 业务表与业务接口。
+- Acceptance: `docker compose up` 后访问 `/api/health` 返回数据库正常；前端页面能打开；CI 运行通过。
+
+### B — 数据模型与题库
+
+- Goal: 把练习所需的全部数据结构和 12 道题落库。
+- Scope: in — Drizzle schema 与迁移：stages、questions、learners、practice_sessions（部分唯一索引）、session_questions、attempts（client_attempt_id 唯一）、question_skips、learning_events；种子脚本写入 4 关 12 题（题干、图形参数、答案、单位、分步解析、易错提醒、常见错误答案、视频地址占位）。out — 判题与接口逻辑。
+- Acceptance: 迁移 + 种子在空库上可重复执行；库中 4 关 12 题，答案与大纲 §2.3 一致；迁移文件已入库。
+
+### C — 判题核心
+
+- Goal: 把判题与统计口径实现为可单测的纯函数。
+- Scope: in — 输入规范化（空格、全角、中文句号）、合法性校验（非负、最多 2 位小数、拒绝科学计数法等）、十进制精确比较、常见错误匹配、题目状态推导、`summarize(snapshot, attempts, skips, events)`。out — 数据库读写。
+- Acceptance: 单元测试覆盖：`30`/`30.0`/`30.00` 相等；非法输入被拒且标记为不计次；先错后对、先看解析后对、跳过、未作答四种情形的分类与指标正确。
+
+### D — 练习会话 API
+
+- Goal: 打通"开始 → 作答 → 跳过 → 结束 → 总结"的后端链路，保证幂等与一致。
+- Scope: in — 大纲 §4.4 的全部接口；作答事务内对会话行加锁并计算 attempt_no；`ON CONFLICT` 幂等返回首次结果；解析访问规则；会话结束后 409；统一错误格式；集成测试连真实 Postgres。out — 前端。
+- Acceptance: 集成测试覆盖大纲 §6 的 9 个场景并在 CI 通过。
+
+### E — 答题主流程前端
+
+- Goal: 学生能在浏览器里独立做完一组练习。
+- Scope: in — 首页（开始/继续）、答题页（进度、SVG 图形、题干、数字输入 + 固定单位）、判题反馈、再试一次 / 图文解析 / 跳过、关卡间导航、刷新恢复、失败与"结果不确定"提示、提交中禁用按钮、学习事件上报（图文）。out — 小镇动画、视频、总结页。
+- Acceptance: 浏览器中完整做完 12 题；刷新任意页面进度不丢；断开后端时提示正确且不显示假成功。
+
+### F — 学习总结页
+
+- Goal: 让学生看懂本次学习情况并知道下一步。
+- Scope: in — 统计数字、每题分类与原因、基于记录的鼓励与具体建议、回看题目和解析、再练一次（新会话）、已结束会话直接进入总结。out — 专业学情诊断。
+- Acceptance: 总结页数字与 `GET /summary` 返回一致；三类分类各有可点击回看的题目。
+
+### G — 首次上线 Render
+
+- Goal: 提供免费公网地址，并尽早暴露部署问题。
+- Scope: in — Dockerfile、`render.yaml`（Web + Postgres）、启动前自动迁移与种子、`@fastify/rate-limit`、生产环境托管前端构建产物、线上日志查看与回滚步骤记录。out — 自定义域名、备份。
+- Acceptance: 公网地址可完整练习一遍；部署与回滚步骤写入 `docs/ai-log-notes.md` 或部署笔记。
+
+### H — 图形小镇与圆圆
+
+- Goal: 让互动机制与练习过程结合，促使学生继续练。
+- Scope: in — 小镇地图与 4 个建筑（随答对逐步建造、全对点亮、未完成显示"施工中"）、关卡过渡、圆圆的角色形象与四类反馈（首次答对、订正答对、过关、答错针对性提示）、结束前跳过题提醒。out — 复杂游戏机制、精美美术。
+- Acceptance: 答对、订正、过关、答错四种反馈都能在实际练习中看到，且与后端状态一致。
+
+### I — 视频解析
+
+- Goal: 第 4、10 题提供可播放的视频解析，学生可自选图文或视频。
+- Scope: in — AI 辅助编写动画脚本（Manim 或 Canvas）并渲染、TTS 旁白、合成为几 MB 的 MP4、播放器、`video_started` / `video_completed` 事件、加载失败兜底、素材来源说明。out — 其余题目的视频。
+- Acceptance: 两道题能播放视频；事件写入数据库；视频不可用时引导看图文解析。
+
+### J — 文档与交付
+
+- Goal: 满足提交要求的 4 项，并能在干净环境复现。
+- Scope: in — README（按提交要求 12 项）、`docs/design.md`、`docs/verification.md`（测试结果、已验证场景、已知问题、未完成项、投入时间）、`docs/ai-collaboration.md`（2–3 段记录）、新克隆验证、展示演练。out — 无。
+- Acceptance: 新克隆仓库按 README 能启动并跑通测试；四份文档齐全；展示流程演练一遍。
+
+## Out of scope
+
+- 方格图不规则图形面积估算题：答案是范围，判题与反馈规则差异大，时间有限；作为可选扩展。
+- 登录注册：题面明确不需要，使用匿名标识。
+- 跨设备找回记录：依赖登录，写入已知限制。
+- 专业学情诊断：题面明确不要求。
+- 数据库备份：Render 免费档不提供，写入已知限制，用 `pg_dump` 手动导出作为恢复办法。
+
+## Follow-ups
+
+（暂无）
+
+## Open questions
+
+（暂无）
+
+## Status log
+
+- 2026-11-10 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · v1 写入并确认
