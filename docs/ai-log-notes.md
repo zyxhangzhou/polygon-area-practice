@@ -27,3 +27,18 @@ AI 生成 `docs/project-outline.md` v0.1 后，本人评审发现以下问题（
 
 - 向导角色：AI 提议小狐狸"小方"，本人认为不够亲和；AI 改为"米米"后，本人最终定为带卷尺的小熊"圆圆"。
 - **验证方式**：上述规则将写入 OpenSpec 规格的场景（scenario），并转为集成测试用例（大纲 §6 第 8、9 条）。
+
+---
+
+## 2026-11-11 · change A（project-scaffold）OpenSpec 评审 · session fab477d6
+
+AI 用 OpenSpec 生成 proposal / specs / design / tasks 后，本人评审提出 4 点：
+
+| # | AI 方案 | 本人意见 | 修正 |
+|---|---|---|---|
+| 1 | 规格写"所有非 `/api/`、不对应静态文件的 GET 都回退到 `index.html`" | 丢失的 JS、图片、视频会变成 200 + HTML，掩盖真实错误，增加排障难度 | 只有页面导航请求（无扩展名且 `Accept` 含 `text/html`）才回退；带扩展名的缺失资源返回 404；新增两个场景（缺失脚本、缺失视频） |
+| 2 | 没有说明 `.env` 放在哪、谁读取 | 需明确位置、开发与测试如何加载、Compose 显式传哪些变量 | design 新增 D3a：根目录唯一 `.env`；开发用 Node `--env-file-if-exists`（先实测确认 shell 变量优先）；测试不读 `.env`；Compose 的 `app` 不用 `env_file`，显式传变量，避免本地 `localhost` 连接串进入容器 |
+| 3 | 不用 Testcontainers 的理由写成"WSL / CI 中排障更复杂" | 理由不准确 | 改为"现有 Compose 和 CI service 已满足需求，再引入一套数据库启动机制收益有限" |
+| 4 | 完全不配 ESLint | 应配最小 ESLint 并进 CI | 新增 D9：recommended + react-hooks + eslint-config-prettier，`npm run lint` 进 CI |
+
+- **验证方式**：第 1 条落为 app-hosting 规格中的 404 场景并转为集成测试；第 2 条在任务 1.2 / 4.1 中验证；第 4 条在任务 1.4 中故意写未使用变量验证 lint 生效。
