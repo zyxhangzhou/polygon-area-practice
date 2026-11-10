@@ -40,8 +40,8 @@
 
 | 环境 | 配置来源 | 加载方式 |
 |---|---|---|
-| 本地开发 `npm run dev` | 根目录 `.env` | 后端脚本用 Node 原生参数 `--env-file-if-exists=../.env` 加载（已验证：shell 中已有的变量优先，文件不存在不报错）。不引入 dotenv |
-| 测试 `npm test` | **不读 `.env`** | 只认 `TEST_DATABASE_URL`，未设置时默认 `postgres://postgres:postgres@localhost:5432/polygon_test`。测试自己构造配置对象传给 `buildApp`，避免误连开发库 |
+| 本地开发 `npm run dev` | 根目录 `.env` | 后端脚本用 Node 原生参数 `--env-file-if-exists=../.env` 加载（已验证：shell 中已有的变量优先，文件不存在不报错）。不引入 dotenv。Vite 用 `loadEnv(mode, '..', '')` 从同一个 `.env` 读取 `WEB_DEV_PORT`（开发端口）与 `PORT`（代理目标） |
+| 测试 `npm test` | **不读 `.env`** | 只认 `TEST_DATABASE_URL`，未设置时默认 `postgres://postgres:postgres@localhost:55432/polygon_test`。测试自己构造配置对象传给 `buildApp`，避免误连开发库 |
 | Docker Compose | compose 文件中**显式写出** | `app` 服务不使用 `env_file`，见下表；根目录 `.env` 只被 Compose 用于变量替换（端口、日志级别） |
 | CI | workflow 中显式写出 | `TEST_DATABASE_URL` 指向 CI 的 Postgres service |
 | Render（change G） | 平台环境变量 | 在 `render.yaml` 中声明，数据库连接串由平台注入 |
@@ -55,7 +55,7 @@
 | `app` | `NODE_ENV` | `production` |
 | `app` | `PORT` | `3000` |
 | `app` | `LOG_LEVEL` | `${LOG_LEVEL:-info}` |
-| 端口映射 | `DB_PORT` / `APP_PORT` | `${DB_PORT:-5432}` / `${APP_PORT:-3000}`，可在根 `.env` 中修改 |
+| 端口映射 | `DB_PORT` / `APP_PORT` | `${DB_PORT:-55432}` / `${APP_PORT:-3000}`，可在根 `.env` 中修改 |
 
 不让 `app` 读取 `.env` 的原因：本地 `.env` 里的 `DATABASE_URL` 指向 `localhost`，在容器里会连错地址。
 
@@ -81,7 +81,7 @@
 - `docker-compose.yml`：
   - `db`：`postgres:17`，命名卷持久化，`healthcheck` 用 `pg_isready`；`docker/initdb/` 脚本额外创建测试库 `polygon_test`。
   - `app`：用多阶段 `Dockerfile` 构建（安装依赖 → 构建前后端 → 仅含生产依赖的运行镜像），`depends_on: db (service_healthy)`。
-- 测试读取 `TEST_DATABASE_URL`（默认 `postgres://postgres:postgres@localhost:5432/polygon_test`）。只跑测试时用 `docker compose up -d db` 起数据库即可。
+- 测试读取 `TEST_DATABASE_URL`（默认 `postgres://postgres:postgres@localhost:55432/polygon_test`）。只跑测试时用 `docker compose up -d db` 起数据库即可。
 - 备选：Testcontainers —— 现有 Compose（本地）和 CI 的 Postgres service 已经能提供测试数据库，再引入一套数据库启动机制收益有限。
 
 ### D8. CI：GitHub Actions
@@ -99,7 +99,8 @@
 ## Risks / Trade-offs
 
 - [Docker 镜像构建慢，演示现场重建耗时] → 多阶段构建 + 依赖层缓存；演示前预先构建好镜像。
-- [本地 5432 端口已被占用] → compose 中宿主端口可通过 `DB_PORT` 环境变量修改，README 常见故障中说明。
+- [本地 5432 端口已被占用] → **实际遇到**：开发机上 Docker Desktop 申请了 5432 但未能绑定（宿主已有程序占用），`docker port` 为空，连接超时。因此宿主端口默认改为 55432（容器内仍是 5432），仍可通过 `DB_PORT` 修改；README 常见故障中说明排查方法（`docker port <容器>`）。
+- [前端开发端口被占用] → **实际遇到**：开发机为 WSL mirrored 网络模式，Windows 保留了 5173–5500 附近的端口段，Vite 无法绑定。因此开发端口改为可配置（`WEB_DEV_PORT`，默认 5173，`strictPort` 避免静默换端口），本机设为 4173。
 - [最小 ESLint 规则覆盖有限，不做类型感知检查] → 由 `tsc --strict` 补足类型层面；需要时再逐条加规则。
 - [前端路由若出现带点的路径段会被当成静态资源返回 404] → 约定路由不使用带点的段，并由 app-hosting 的测试覆盖。
 - [测试与开发共用一个 Postgres 实例] → 使用独立的 `polygon_test` 库，测试不碰开发数据。

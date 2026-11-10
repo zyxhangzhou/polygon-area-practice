@@ -42,3 +42,16 @@ AI 用 OpenSpec 生成 proposal / specs / design / tasks 后，本人评审提�
 | 4 | 完全不配 ESLint | 应配最小 ESLint 并进 CI | 新增 D9：recommended + react-hooks + eslint-config-prettier，`npm run lint` 进 CI |
 
 - **验证方式**：第 1 条落为 app-hosting 规格中的 404 场景并转为集成测试；第 2 条在任务 1.2 / 4.1 中验证；第 4 条在任务 1.4 中故意写未使用变量验证 lint 生效。
+
+---
+
+## 2026-11-11 · change A 实现中的调试 · session fab477d6
+
+| # | 现象 | 排查 | 处理 |
+|---|---|---|---|
+| 1 | `npm view` 显示 TypeScript 最新版是 7.0，但 typescript-eslint 的 peer 依赖要求 `<6.1` | 装依赖前先查 peer 依赖 | 锁定 `typescript@~6.0.3` |
+| 2 | 健康检查测试 2 秒超时返回 503，数据库容器显示 healthy | 用 node 直接连 `127.0.0.1:5432` 也超时；`docker inspect` 显示请求了 5432 端口映射，但 `NetworkSettings.Ports` 为空，说明宿主端口没绑上（Docker Desktop，宿主已有程序占用） | 改用 55432 后测试全部通过；默认宿主端口改为 55432，README 常见故障写明用 `docker port` 排查 |
+| 3 | `npm run dev` 时 Vite 报 5173–5190 端口全部被占用，但 `ss -ltn` 看不到任何监听 | node 直接 `listen(5173)` 也报 `EADDRINUSE`；逐个探测发现 5100–5500 一段都不能用，`wslinfo --networking-mode` 为 mirrored，判断是 Windows 侧保留了这一端口段 | Vite 端口改为从根 `.env` 读取 `WEB_DEV_PORT`（默认 5173，`strictPort`），本机设为 4173 |
+| 4 | 生成 compose 时用 sed 插入 `name:` 到了 `services:` 下面，YAML 报错 | 读错误信息定位到第 6 行 | 改用脚本精确替换 |
+
+- 2、3 两条都是"测试 / 实际运行暴露出的环境问题"，修复后通过 `npm test`（18 个测试）和 `docker compose up --build` + curl 冒烟验证。
