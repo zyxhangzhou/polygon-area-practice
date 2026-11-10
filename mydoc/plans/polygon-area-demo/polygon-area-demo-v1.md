@@ -22,7 +22,7 @@
 
 | Order | ID | Change | Ref | Depends on | Status |
 |---|---|---|---|---|---|
-| 1 | A | 项目骨架 | `project-scaffold`（分支 `change/project-scaffold`） | — | in-progress |
+| 1 | A | 项目骨架 | `project-scaffold`（分支 `change/project-scaffold`） | — | pr #1 |
 | 2 | B | 数据模型与题库 | `data-model-question-bank` | A | planned |
 | 3 | C | 判题核心 | `grading-core` | B | planned |
 | 4 | D | 练习会话 API | `practice-session-api` | C | planned |
@@ -113,3 +113,4 @@
 
 - 2026-11-10 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · v1 写入并确认
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · A 开始：OpenSpec change `project-scaffold` 四个 artifact 已生成并通过 strict 校验；Dockerfile 归入 A（G 复用）
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · A 实现完成（12/12 任务，18 个测试，CI 通过），开 PR #1
