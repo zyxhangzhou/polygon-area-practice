@@ -25,7 +25,7 @@
 
 ## 5. CI
 
-- [ ] 5.1 编写 `.github/workflows/ci.yml`（Node 24 + postgres:17 service：npm ci → lint → format:check → typecheck → build → test）；验证推送后 GitHub Actions 运行通过
+- [x] 5.1 编写 `.github/workflows/ci.yml`（Node 24 + postgres:17 service：npm ci → lint → format:check → typecheck → build → test）；验证推送后 GitHub Actions 运行通过
 
 ## Workflow follow-up
 
