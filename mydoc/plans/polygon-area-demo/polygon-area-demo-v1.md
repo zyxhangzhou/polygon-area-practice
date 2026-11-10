@@ -22,7 +22,7 @@
 
 | Order | ID | Change | Ref | Depends on | Status |
 |---|---|---|---|---|---|
-| 1 | A | 项目骨架 | `project-scaffold` | — | planned |
+| 1 | A | 项目骨架 | `project-scaffold`（分支 `change/project-scaffold`） | — | in-progress |
 | 2 | B | 数据模型与题库 | `data-model-question-bank` | A | planned |
 | 3 | C | 判题核心 | `grading-core` | B | planned |
 | 4 | D | 练习会话 API | `practice-session-api` | C | planned |
@@ -72,7 +72,7 @@
 ### G — 首次上线 Render
 
 - Goal: 提供免费公网地址，并尽早暴露部署问题。
-- Scope: in — Dockerfile、`render.yaml`（Web + Postgres）、启动前自动迁移与种子、`@fastify/rate-limit`、生产环境托管前端构建产物、线上日志查看与回滚步骤记录。out — 自定义域名、备份。
+- Scope: in — 复用 A 的 Dockerfile、`render.yaml`（Web + Postgres）、启动前自动迁移与种子、`@fastify/rate-limit`、生产环境托管前端构建产物、线上日志查看与回滚步骤记录。out — 自定义域名、备份。
 - Acceptance: 公网地址可完整练习一遍；部署与回滚步骤写入 `docs/ai-log-notes.md` 或部署笔记。
 
 ### H — 图形小镇与圆圆
@@ -112,3 +112,4 @@
 ## Status log
 
 - 2026-11-10 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · v1 写入并确认
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · A 开始：OpenSpec change `project-scaffold` 四个 artifact 已生成并通过 strict 校验；Dockerfile 归入 A（G 复用）
