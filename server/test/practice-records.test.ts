@@ -8,6 +8,7 @@ import {
   learners,
   learningEvents,
   practiceSessions,
+  questionSkips,
   sessionQuestions,
 } from '../src/db/schema.js';
 import { resetPracticeData, TEST_DATABASE_URL } from './helpers.js';
@@ -96,7 +97,32 @@ describe('会话状态一致', () => {
   });
 });
 
+const skip = (sessionId: string, questionId: number, overrides = {}) => ({
+  sessionId,
+  questionId,
+  clientRequestId: randomUUID(),
+  ...overrides,
+});
+
+const event = (sessionId: string, questionId: number, overrides = {}) => ({
+  sessionId,
+  questionId,
+  type: 'explanation_text_opened' as const,
+  clientEventId: randomUUID(),
+  ...overrides,
+});
+
 describe('题目快照', () => {
+  it('同一会话快照中顺序号重复被拒绝', async () => {
+    const s = await newSession([1]);
+    await expectViolation(
+      db
+        .insert(sessionQuestions)
+        .values({ sessionId: s.id, questionId: 2, position: 1, stageId: 1 }),
+      'session_questions_position_uq',
+    );
+  });
+
   it('同一会话快照中题目重复被拒绝', async () => {
     const s = await newSession([1]);
     await expectViolation(
@@ -113,6 +139,18 @@ describe('记录只能指向快照中的题', () => {
     const s = await newSession([1, 2, 3]);
     await expectViolation(db.insert(attempts).values(attempt(s.id, 5)), 'attempts_snapshot_fk');
   });
+
+  it('为快照外的题写跳过、学习事件被拒绝', async () => {
+    const s = await newSession([1, 2, 3]);
+    await expectViolation(
+      db.insert(questionSkips).values(skip(s.id, 5)),
+      'question_skips_snapshot_fk',
+    );
+    await expectViolation(
+      db.insert(learningEvents).values(event(s.id, 5)),
+      'learning_events_snapshot_fk',
+    );
+  });
 });
 
 describe('幂等键在会话内唯一', () => {
@@ -127,6 +165,22 @@ describe('幂等键在会话内唯一', () => {
       .returning();
     expect(second).toHaveLength(0);
     expect(await db.$count(attempts, eq(attempts.clientAttemptId, a.clientAttemptId))).toBe(1);
+  });
+
+  it('同一会话重复的 client_request_id（跳过）、client_event_id（学习事件）被拒绝', async () => {
+    const s = await newSession();
+    const sk = skip(s.id, 1);
+    await db.insert(questionSkips).values(sk);
+    await expectViolation(
+      db.insert(questionSkips).values({ ...sk, questionId: 2 }),
+      'question_skips_client_id_uq',
+    );
+    const ev = event(s.id, 1);
+    await db.insert(learningEvents).values(ev);
+    await expectViolation(
+      db.insert(learningEvents).values({ ...ev, type: 'video_started' }),
+      'learning_events_client_id_uq',
+    );
   });
 
   it('不同会话可以使用相同的 client_attempt_id', async () => {
@@ -171,5 +225,62 @@ describe('级联删除', () => {
     expect(await db.$count(practiceSessions)).toBe(0);
     expect(await db.$count(sessionQuestions)).toBe(0);
     expect(await db.$count(attempts)).toBe(0);
+  });
+});
+
+describe('每道题最多一条答对记录', () => {
+  it('同一题第二条答对的作答被拒绝，答错的可以有多条', async () => {
+    const s = await newSession();
+    await db.insert(attempts).values(attempt(s.id, 1, { isCorrect: false, attemptNo: 1 }));
+    await db.insert(attempts).values(attempt(s.id, 1, { isCorrect: false, attemptNo: 2 }));
+    await db.insert(attempts).values(attempt(s.id, 1, { isCorrect: true, attemptNo: 3 }));
+    await expectViolation(
+      db.insert(attempts).values(attempt(s.id, 1, { isCorrect: true, attemptNo: 4 })),
+      'attempts_one_correct_uq',
+    );
+  });
+});
+
+describe('记录的写入顺序 seq', () => {
+  it('依次写入学习事件、作答、跳过，seq 严格递增', async () => {
+    const s = await newSession();
+    const [e] = await db.insert(learningEvents).values(event(s.id, 1)).returning();
+    const [a] = await db.insert(attempts).values(attempt(s.id, 1)).returning();
+    const [k] = await db.insert(questionSkips).values(skip(s.id, 2)).returning();
+    expect(e!.seq).toBeLessThan(a!.seq);
+    expect(a!.seq).toBeLessThan(k!.seq);
+  });
+
+  it('先开始、后写入的事务：seq 反映实际写入顺序，created_at 不能', async () => {
+    const s = await newSession();
+    const clientA = await pool.connect();
+    try {
+      await clientA.query('BEGIN');
+      await clientA.query('select 1'); // 事务 A 开始，now() 固定在此刻
+      await new Promise((r) => setTimeout(r, 30));
+      // 事务 B 后开始、先写入并提交
+      const [e] = await db.insert(learningEvents).values(event(s.id, 1)).returning();
+      const a = attempt(s.id, 1);
+      const { rows } = await clientA.query<{ seq: string; created_at: Date }>(
+        `insert into attempts (session_id, question_id, client_attempt_id, raw_input, normalized_value, is_correct, attempt_no)
+         values ($1, $2, $3, $4, $5, $6, $7) returning seq, created_at`,
+        [
+          a.sessionId,
+          a.questionId,
+          a.clientAttemptId,
+          a.rawInput,
+          a.normalizedValue,
+          a.isCorrect,
+          a.attemptNo,
+        ],
+      );
+      await clientA.query('COMMIT');
+      // 实际写入顺序：事件在前
+      expect(e!.seq).toBeLessThan(Number(rows[0]!.seq));
+      // created_at 却显示作答在前——这正是要用 seq 的原因
+      expect(rows[0]!.created_at.getTime()).toBeLessThan(e!.createdAt.getTime());
+    } finally {
+      clientA.release();
+    }
   });
 });

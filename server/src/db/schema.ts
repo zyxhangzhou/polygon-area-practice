@@ -1,12 +1,14 @@
 import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
+  bigint,
   boolean,
   check,
   foreignKey,
   integer,
   jsonb,
   numeric,
+  pgSequence,
   pgTable,
   primaryKey,
   text,
@@ -124,6 +126,16 @@ export const sessionQuestions = pgTable(
   ],
 );
 
+/**
+ * 作答、跳过、学习事件共用的写入序号。created_at 取的是事务开始时间，并发时可能与实际写入顺序相反；
+ * 判断"答对前是否打开过解析""最近一次操作是不是跳过"一律按 seq。
+ */
+export const practiceRecordSeq = pgSequence('practice_record_seq');
+const seq = () =>
+  bigint('seq', { mode: 'number' })
+    .notNull()
+    .default(sql`nextval('practice_record_seq')`);
+
 /** 作答 / 跳过 / 学习事件只能指向本会话快照中的题 */
 const snapshotFk = (name: string, sessionId: AnyPgColumn, questionId: AnyPgColumn) =>
   foreignKey({
@@ -144,6 +156,7 @@ export const attempts = pgTable(
     isCorrect: boolean('is_correct').notNull(),
     attemptNo: integer('attempt_no').notNull(),
     matchedMistake: text('matched_mistake'),
+    seq: seq(),
     createdAt: createdAt(),
   },
   (t) => [
@@ -151,6 +164,10 @@ export const attempts = pgTable(
     unique('attempts_client_id_uq').on(t.sessionId, t.clientAttemptId),
     unique('attempts_attempt_no_uq').on(t.sessionId, t.questionId, t.attemptNo),
     check('attempts_attempt_no_ck', sql`${t.attemptNo} >= 1`),
+    // 同一会话同一题最多一条答对记录（答对后不再写入作答）
+    uniqueIndex('attempts_one_correct_uq')
+      .on(t.sessionId, t.questionId)
+      .where(sql`is_correct`),
   ],
 );
 
@@ -161,6 +178,7 @@ export const questionSkips = pgTable(
     sessionId: uuid('session_id').notNull(),
     questionId: integer('question_id').notNull(),
     clientRequestId: uuid('client_request_id').notNull(),
+    seq: seq(),
     createdAt: createdAt(),
   },
   (t) => [
@@ -178,6 +196,7 @@ export const learningEvents = pgTable(
     type: text('type', { enum: LEARNING_EVENT_TYPES }).notNull(),
     clientEventId: uuid('client_event_id').notNull(),
     payload: jsonb('payload'),
+    seq: seq(),
     createdAt: createdAt(),
   },
   (t) => [

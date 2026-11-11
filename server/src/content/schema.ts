@@ -4,17 +4,39 @@ const length = z.number().positive();
 const lengthUnit = z.enum(['cm', 'dm', 'm']);
 
 /**
- * 图形参数：前端按这些参数绘制 SVG。
- * `unknown` 指出图上标"?"的那条边（逆运算题），其余边标出数值。
+ * 图形参数：前端按这些参数绘制 SVG，**只包含题干给出的条件，不含答案**。
+ * 逆运算题用 `unknown` 指出图上标"?"的那条边：那条边不出现在参数里（否则题目接口会泄露答案），
+ * 改为给出 `area`；前端按默认比例绘制。
  */
-export const FigureSchema = z.discriminatedUnion('shape', [
-  z.object({
+const ParallelogramSchema = z
+  .object({
     shape: z.literal('parallelogram'),
-    base: length,
-    height: length,
+    base: length.optional(),
+    height: length.optional(),
+    area: length.optional(),
     lengthUnit,
     unknown: z.enum(['base', 'height']).optional(),
-  }),
+  })
+  .superRefine((f, ctx) => {
+    if (f.unknown) {
+      if (f[f.unknown] !== undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `所求的边 ${f.unknown} 不能出现在图形参数中（会泄露答案）`,
+        });
+      }
+      const known = f.unknown === 'height' ? 'base' : 'height';
+      if (f[known] === undefined)
+        ctx.addIssue({ code: 'custom', message: `缺少已知的边 ${known}` });
+      if (f.area === undefined) ctx.addIssue({ code: 'custom', message: '逆运算题必须给出 area' });
+    } else {
+      if (f.base === undefined) ctx.addIssue({ code: 'custom', message: '缺少 base' });
+      if (f.height === undefined) ctx.addIssue({ code: 'custom', message: '缺少 height' });
+    }
+  });
+
+export const FigureSchema = z.discriminatedUnion('shape', [
+  ParallelogramSchema,
   z.object({ shape: z.literal('triangle'), base: length, height: length, lengthUnit }),
   z.object({ shape: z.literal('right-triangle'), legA: length, legB: length, lengthUnit }),
   z.object({

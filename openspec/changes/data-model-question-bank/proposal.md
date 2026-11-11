@@ -30,7 +30,7 @@
 
 ## Impact
 
-- 新增：`server/src/db/schema.ts`、`server/src/db/migrate.ts`、`server/src/db/seed.ts`、`server/src/content/`（题库数据与 zod 结构）、`server/drizzle/`（迁移 SQL）、`server/drizzle.config.ts`。
+- 新增：`server/src/db/schema.ts`、`server/src/db/prepare.ts`、`server/src/db/seed.ts`、`server/src/content/`（题库数据与 zod 结构）、`server/drizzle/`（迁移 SQL）、`server/drizzle.config.ts`。
 - 修改：
   - `server/src/index.ts`：启动顺序改为迁移 → 种子 → 监听。
   - `server/vitest.config.ts`：加 globalSetup，测试文件串行执行。

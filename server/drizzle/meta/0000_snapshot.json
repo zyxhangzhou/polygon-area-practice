@@ -1,5 +1,5 @@
 {
-  "id": "adf90354-1bfc-4a18-a014-4e046875fa48",
+  "id": "856846fc-1da6-4a5a-b48e-e77bd2dddf9f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -63,6 +63,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "seq": {
+          "name": "seq",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "nextval('practice_record_seq')"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -71,14 +78,43 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "attempts_one_correct_uq": {
+          "name": "attempts_one_correct_uq",
+          "columns": [
+            {
+              "expression": "session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "question_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "is_correct",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "attempts_snapshot_fk": {
           "name": "attempts_snapshot_fk",
           "tableFrom": "attempts",
           "tableTo": "session_questions",
-          "columnsFrom": ["session_id", "question_id"],
-          "columnsTo": ["session_id", "question_id"],
+          "columnsFrom": [
+            "session_id",
+            "question_id"
+          ],
+          "columnsTo": [
+            "session_id",
+            "question_id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -88,12 +124,19 @@
         "attempts_client_id_uq": {
           "name": "attempts_client_id_uq",
           "nullsNotDistinct": false,
-          "columns": ["session_id", "client_attempt_id"]
+          "columns": [
+            "session_id",
+            "client_attempt_id"
+          ]
         },
         "attempts_attempt_no_uq": {
           "name": "attempts_attempt_no_uq",
           "nullsNotDistinct": false,
-          "columns": ["session_id", "question_id", "attempt_no"]
+          "columns": [
+            "session_id",
+            "question_id",
+            "attempt_no"
+          ]
         }
       },
       "policies": {},
@@ -179,6 +222,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "seq": {
+          "name": "seq",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "nextval('practice_record_seq')"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -193,8 +243,14 @@
           "name": "learning_events_snapshot_fk",
           "tableFrom": "learning_events",
           "tableTo": "session_questions",
-          "columnsFrom": ["session_id", "question_id"],
-          "columnsTo": ["session_id", "question_id"],
+          "columnsFrom": [
+            "session_id",
+            "question_id"
+          ],
+          "columnsTo": [
+            "session_id",
+            "question_id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -204,7 +260,10 @@
         "learning_events_client_id_uq": {
           "name": "learning_events_client_id_uq",
           "nullsNotDistinct": false,
-          "columns": ["session_id", "client_event_id"]
+          "columns": [
+            "session_id",
+            "client_event_id"
+          ]
         }
       },
       "policies": {},
@@ -283,8 +342,12 @@
           "name": "practice_sessions_learner_id_learners_id_fk",
           "tableFrom": "practice_sessions",
           "tableTo": "learners",
-          "columnsFrom": ["learner_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "learner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -333,6 +396,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "seq": {
+          "name": "seq",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "nextval('practice_record_seq')"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -347,8 +417,14 @@
           "name": "question_skips_snapshot_fk",
           "tableFrom": "question_skips",
           "tableTo": "session_questions",
-          "columnsFrom": ["session_id", "question_id"],
-          "columnsTo": ["session_id", "question_id"],
+          "columnsFrom": [
+            "session_id",
+            "question_id"
+          ],
+          "columnsTo": [
+            "session_id",
+            "question_id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -358,7 +434,10 @@
         "question_skips_client_id_uq": {
           "name": "question_skips_client_id_uq",
           "nullsNotDistinct": false,
-          "columns": ["session_id", "client_request_id"]
+          "columns": [
+            "session_id",
+            "client_request_id"
+          ]
         }
       },
       "policies": {},
@@ -448,8 +527,12 @@
           "name": "questions_stage_id_stages_id_fk",
           "tableFrom": "questions",
           "tableTo": "stages",
-          "columnsFrom": ["stage_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "stage_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -459,7 +542,10 @@
         "questions_stage_position_uq": {
           "name": "questions_stage_position_uq",
           "nullsNotDistinct": false,
-          "columns": ["stage_id", "position_in_stage"]
+          "columns": [
+            "stage_id",
+            "position_in_stage"
+          ]
         }
       },
       "policies": {},
@@ -510,8 +596,12 @@
           "name": "session_questions_session_id_practice_sessions_id_fk",
           "tableFrom": "session_questions",
           "tableTo": "practice_sessions",
-          "columnsFrom": ["session_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -519,8 +609,12 @@
           "name": "session_questions_question_id_questions_id_fk",
           "tableFrom": "session_questions",
           "tableTo": "questions",
-          "columnsFrom": ["question_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "question_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -528,8 +622,12 @@
           "name": "session_questions_stage_id_stages_id_fk",
           "tableFrom": "session_questions",
           "tableTo": "stages",
-          "columnsFrom": ["stage_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "stage_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -537,14 +635,20 @@
       "compositePrimaryKeys": {
         "session_questions_session_id_question_id_pk": {
           "name": "session_questions_session_id_question_id_pk",
-          "columns": ["session_id", "question_id"]
+          "columns": [
+            "session_id",
+            "question_id"
+          ]
         }
       },
       "uniqueConstraints": {
         "session_questions_position_uq": {
           "name": "session_questions_position_uq",
           "nullsNotDistinct": false,
-          "columns": ["session_id", "position"]
+          "columns": [
+            "session_id",
+            "position"
+          ]
         }
       },
       "policies": {},
@@ -593,7 +697,9 @@
         "stages_position_unique": {
           "name": "stages_position_unique",
           "nullsNotDistinct": false,
-          "columns": ["position"]
+          "columns": [
+            "position"
+          ]
         }
       },
       "policies": {},
@@ -603,7 +709,18 @@
   },
   "enums": {},
   "schemas": {},
-  "sequences": {},
+  "sequences": {
+    "public.practice_record_seq": {
+      "name": "practice_record_seq",
+      "schema": "public",
+      "increment": "1",
+      "startWith": "1",
+      "minValue": "1",
+      "maxValue": "9223372036854775807",
+      "cache": "1",
+      "cycle": false
+    }
+  },
   "roles": {},
   "policies": {},
   "views": {},

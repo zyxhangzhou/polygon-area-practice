@@ -59,6 +59,10 @@ TEST_DATABASE_URL=postgres://postgres:postgres@localhost:<端口>/polygon_test n
 | `npm run db:migrate -w server` | 只执行迁移（读取根目录 `.env` 的 `DATABASE_URL`） |
 | `npm run db:seed -w server` | 只写入题库，题库内容在 `server/src/content/questions.ts` |
 
+在 Docker 运行镜像中（没有 tsx）手动执行：`docker compose exec app node dist/db/cli.js migrate`（或 `seed`）。
+
+多个实例同时启动时，迁移由数据库锁串行执行；等锁超过 30 秒按失败退出，并提示可能有另一个实例正在迁移。
+
 测试开始前会**重建测试库**（`TEST_DATABASE_URL` 的库名必须以 `_test` 结尾，否则拒绝执行），再迁移并写入题库；测试文件串行执行。
 
 ## 配置

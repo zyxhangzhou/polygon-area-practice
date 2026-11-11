@@ -31,6 +31,10 @@
 - **WHEN** 向同一会话的快照写入同一道题两次
 - **THEN** 第二次写入失败
 
+#### Scenario: 快照中顺序号重复
+- **WHEN** 向同一会话的快照写入两道不同的题，顺序号相同
+- **THEN** 第二次写入失败
+
 ### Requirement: 记录只能指向快照中的题
 作答、跳过、学习事件 MUST 指向本会话快照中存在的题；指向不在快照中的题的写入 MUST 失败。
 
@@ -38,12 +42,20 @@
 - **WHEN** 会话快照只含第 1–3 题，写入一条第 5 题的作答
 - **THEN** 写入因外键约束失败
 
+#### Scenario: 为快照外的题写入跳过或学习事件
+- **WHEN** 会话快照只含第 1–3 题，分别写入一条第 5 题的跳过记录和学习事件
+- **THEN** 两次写入都因外键约束失败
+
 ### Requirement: 幂等键在会话内唯一
 作答的 `client_attempt_id`、跳过的 `client_request_id`、学习事件的 `client_event_id` SHALL 在同一会话内唯一。重复写入 MUST 被数据库拒绝，或在 `ON CONFLICT DO NOTHING` 下不产生新行；不同会话之间允许相同的键。
 
 #### Scenario: 同一会话重复的作答幂等键
 - **WHEN** 在同一会话中用相同 `client_attempt_id` 写入两条作答，第二条使用 `ON CONFLICT DO NOTHING`
 - **THEN** 库中只有一条该键的作答
+
+#### Scenario: 跳过与学习事件的幂等键
+- **WHEN** 在同一会话中用相同的 `client_request_id` 写入两条跳过记录，或用相同的 `client_event_id` 写入两条学习事件
+- **THEN** 第二条写入失败
 
 #### Scenario: 不同会话可用相同的键
 - **WHEN** 两个不同会话各写入一条 `client_attempt_id` 相同的作答
@@ -62,3 +74,21 @@
 #### Scenario: 未知事件类型
 - **WHEN** 写入类型为 `explanation_viewed` 的学习事件
 - **THEN** 写入因检查约束失败
+
+### Requirement: 每道题最多一条答对记录
+同一会话同一题 SHALL 最多只有一条 `is_correct = true` 的作答（答对后不再写入作答）。
+
+#### Scenario: 同一题第二条答对记录
+- **WHEN** 同一会话同一题已有一条答对的作答，再写入一条答对的作答（序号不同）
+- **THEN** 写入因唯一约束失败
+
+### Requirement: 记录的写入顺序
+作答、跳过、学习事件 SHALL 带有一个跨三张表共用、由数据库按写入先后分配的递增序号 `seq`。统计"答对之前是否打开过解析""最近一次操作是不是跳过"时以 `seq` 为准，不以 `created_at` 为准（`created_at` 取的是事务开始时间，并发时与实际写入顺序可能相反）。
+
+#### Scenario: 跨表的写入顺序
+- **WHEN** 在同一会话中依次写入一条学习事件、一条作答、一条跳过
+- **THEN** 三条记录的 `seq` 严格递增
+
+#### Scenario: 先开始的事务后写入
+- **WHEN** 事务 A 先开始但后写入一条作答，事务 B 后开始但先写入一条学习事件并提交
+- **THEN** 学习事件的 `seq` 小于作答的 `seq`

@@ -18,14 +18,14 @@ export const STAGES: StageSeed[] = [
     position: 2,
     name: '三角形',
     buildingName: '帐篷营地',
-    intro: '两个一样的三角形能拼成一个平行四边形。帐篷营地等你来搭！',
+    intro: '两个完全一样的三角形能拼成一个平行四边形。帐篷营地等你来搭！',
   },
   {
     id: 3,
     position: 3,
     name: '梯形',
     buildingName: '小桥',
-    intro: '两个一样的梯形也能拼成平行四边形。把小河上的桥修起来吧！',
+    intro: '两个完全一样的梯形也能拼成平行四边形。把小河上的桥修起来吧！',
   },
   {
     id: 4,
@@ -52,11 +52,11 @@ export const QUESTIONS: QuestionSeed[] = [
         '选公式：平行四边形剪拼成长方形后，长方形的长就是底，宽就是高，所以平行四边形面积 = 底 × 高。',
         '代入计算：8 × 5 = 40（cm²）。',
       ],
-      tip: '平行四边形面积是"底 × 高"，不用除以 2；除以 2 是三角形的公式。',
+      tip: '平行四边形面积就是"底 × 高"，不用 ÷ 2。',
     },
     videoUrl: null,
     commonMistakes: [
-      { answer: '20', hint: '平行四边形不用除以 2 哦，除以 2 的是三角形。' },
+      { answer: '20', hint: '平行四边形面积就是底 × 高，不用 ÷ 2 哦。' },
       { answer: '13', hint: '面积要用乘法，把底和高相乘，不是相加。' },
     ],
     knowledgePoint: '平行四边形面积公式',
@@ -80,7 +80,10 @@ export const QUESTIONS: QuestionSeed[] = [
     videoUrl: null,
     commonMistakes: [
       { answer: '13', hint: '平行四边形面积是底 × 高，不用除以 2。' },
-      { answer: '260', hint: '检查一下小数点的位置：6.5 × 4 的积只有一位小数。' },
+      {
+        answer: '260',
+        hint: '别忘了点小数点：先算 65 × 4 = 260，6.5 有一位小数，积也要点出一位小数，得 26.0，也就是 26。',
+      },
     ],
     knowledgePoint: '平行四边形面积（小数）',
   },
@@ -89,7 +92,7 @@ export const QUESTIONS: QuestionSeed[] = [
     stageId: 1,
     positionInStage: 3,
     prompt: '面包店的橱窗是一个平行四边形，面积是 48 dm²，底是 12 dm。它的高是多少？',
-    figure: { shape: 'parallelogram', base: 12, height: 4, lengthUnit: 'dm', unknown: 'height' },
+    figure: { shape: 'parallelogram', base: 12, area: 48, lengthUnit: 'dm', unknown: 'height' },
     answer: '4',
     unit: 'dm',
     explanation: {
@@ -194,7 +197,7 @@ export const QUESTIONS: QuestionSeed[] = [
     explanation: {
       steps: [
         '看图找条件：上底 4 cm，下底 8 cm，高 5 cm。',
-        '选公式：两个一样的梯形能拼成一个平行四边形，它的底是"上底 + 下底"，所以梯形面积 = （上底 + 下底）× 高 ÷ 2。',
+        '选公式：两个完全一样的梯形能拼成一个平行四边形，它的底是"上底 + 下底"，所以梯形面积 = （上底 + 下底）× 高 ÷ 2。',
         '代入计算：（4 + 8）× 5 ÷ 2 = 12 × 5 ÷ 2 = 30（cm²）。',
       ],
       tip: '先算上底加下底（记得加括号），再乘高，最后 ÷ 2。',
@@ -284,22 +287,22 @@ export const QUESTIONS: QuestionSeed[] = [
     stageId: 4,
     positionInStage: 2,
     prompt:
-      '广场边有一块 L 形的花圃：它是一个长 10 m、宽 8 m 的长方形，缺去了一个角上长 4 m、宽 3 m 的小长方形。花圃的面积是多少？',
+      '广场边有一块 L 形的花圃：它是一个长 10 m、宽 8 m 的长方形，去掉了一个角上长 4 m、宽 3 m 的小长方形。花圃的面积是多少？',
     figure: { shape: 'l-shape', width: 10, height: 8, cutWidth: 4, cutHeight: 3, lengthUnit: 'm' },
     answer: '68',
     unit: 'm²',
     explanation: {
       steps: [
         '补一补：把缺的角补上，就是一个完整的大长方形，面积 = 10 × 8 = 80（m²）。',
-        '算缺口：缺去的小长方形面积 = 4 × 3 = 12（m²）。',
+        '算缺口：去掉的小长方形面积 = 4 × 3 = 12（m²）。',
         '减一减：80 − 12 = 68（m²）。也可以把 L 形分成两个长方形再相加，结果一样。',
       ],
       tip: '用"补"的方法时，最后要减去补上的那一块，不是加上。',
     },
     videoUrl: null,
     commonMistakes: [
-      { answer: '92', hint: '缺去的那一块要减掉，不是加上：80 − 12。' },
-      { answer: '80', hint: '80 是补完整后大长方形的面积，还要减去缺去的小长方形。' },
+      { answer: '92', hint: '去掉的那一块要减掉，不是加上：80 − 12。' },
+      { answer: '80', hint: '80 是补完整后大长方形的面积，还要减掉那个小长方形。' },
     ],
     knowledgePoint: '组合图形：添补法',
   },

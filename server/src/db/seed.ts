@@ -110,14 +110,26 @@ export async function seed(
           valid.questions.map((q) => q.id),
         ),
       );
-    if (orphans.length > 0) {
-      throw new SeedValidationError(
-        orphans.map(
-          (o) =>
-            `题目 ${o.id} 在数据库中但不在种子中：题目 ID 不能删除，替换题目请在原 ID 上修改内容`,
+    const orphanStages = await tx
+      .select({ id: stages.id })
+      .from(stages)
+      .where(
+        notInArray(
+          stages.id,
+          valid.stages.map((s) => s.id),
         ),
       );
-    }
+    const orphanIssues = [
+      ...orphans.map(
+        (o) =>
+          `题目 ${o.id} 在数据库中但不在种子中：题目 ID 不能删除，替换题目请在原 ID 上修改内容`,
+      ),
+      ...orphanStages.map(
+        (o) =>
+          `关卡 ${o.id} 在数据库中但不在种子中：关卡 ID 不能删除，替换关卡请在原 ID 上修改内容`,
+      ),
+    ];
+    if (orphanIssues.length > 0) throw new SeedValidationError(orphanIssues);
     for (const s of valid.stages) {
       await tx
         .insert(stages)

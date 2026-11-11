@@ -1,20 +1,9 @@
 import { buildApp } from './app.js';
 import { ConfigError, loadConfig } from './config.js';
 import { prepareDatabase } from './db/prepare.js';
+import { describeError } from './errors.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
-
-/** 连接被拒绝时 pg 抛 AggregateError，message 为空，需展开内部错误 */
-function describeError(err: unknown): string {
-  if (err instanceof AggregateError && err.errors.length > 0) {
-    return err.errors.map(describeError).join('; ');
-  }
-  if (err instanceof Error) {
-    const code = (err as { code?: string }).code;
-    return [code, err.message].filter(Boolean).join(' ') || err.name;
-  }
-  return String(err);
-}
 
 async function main() {
   let config;

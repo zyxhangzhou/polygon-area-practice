@@ -1,6 +1,6 @@
 {
-  "id": "c87af002-a564-44df-865b-2e63b675e7c4",
-  "prevId": "adf90354-1bfc-4a18-a014-4e046875fa48",
+  "id": "34a18ec6-1164-403e-b272-fe687b23dc5c",
+  "prevId": "856846fc-1da6-4a5a-b48e-e77bd2dddf9f",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -63,6 +63,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "seq": {
+          "name": "seq",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "nextval('practice_record_seq')"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -71,7 +78,30 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "attempts_one_correct_uq": {
+          "name": "attempts_one_correct_uq",
+          "columns": [
+            {
+              "expression": "session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "question_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "is_correct",
+          "concurrently": false
+        }
+      },
       "foreignKeys": {
         "attempts_snapshot_fk": {
           "name": "attempts_snapshot_fk",
@@ -191,6 +221,13 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
+        },
+        "seq": {
+          "name": "seq",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "nextval('practice_record_seq')"
         },
         "created_at": {
           "name": "created_at",
@@ -358,6 +395,13 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "seq": {
+          "name": "seq",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "nextval('practice_record_seq')"
         },
         "created_at": {
           "name": "created_at",
@@ -666,7 +710,18 @@
   "enums": {},
   "schemas": {},
   "views": {},
-  "sequences": {},
+  "sequences": {
+    "public.practice_record_seq": {
+      "name": "practice_record_seq",
+      "increment": "1",
+      "minValue": "1",
+      "maxValue": "9223372036854775807",
+      "startWith": "1",
+      "cache": "1",
+      "cycle": false,
+      "schema": "public"
+    }
+  },
   "roles": {},
   "policies": {},
   "_meta": {

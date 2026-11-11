@@ -38,6 +38,14 @@
 - [x] 7.2 `validateSeed` 增加一致性检查（ID、关卡顺序、关内序号不重复，所属关卡存在，每关 3 题）；`seed` 写入前检查库中是否有种子之外的题目
 - [x] 7.3 测试：关内交换顺序、交换关卡顺序后重新执行种子成功；种子内序号重复被拒并指出题号；库中有种子之外的题被拒且提示 ID 不能删除；以上失败时题库不变；验证撤掉 7.1 后"交换顺序"测试失败
 
+## 8. 评审修复（子代理审 PR #2）
+
+- [x] 8.1 表结构：作答、跳过、学习事件加共用序列的 `seq`；`attempts` 加部分唯一索引 `(session_id, question_id) WHERE is_correct`；重新生成 `0000_init`、重建 `0001`
+- [x] 8.2 第 3 题图形参数改为 `{ base, area, unknown: 'height' }`，zod 规则保证 `unknown` 指向的边不存在；自洽性测试改为用面积 ÷ 底计算
+- [x] 8.3 `prepareDatabase`：`lock_timeout` 默认 30 秒（可传参）、`statement_timeout` 60 秒；错误描述展开到最内层的数据库错误，不打印 SQL 参数；种子的孤儿检查覆盖关卡
+- [x] 8.4 测试：在全新空库上并发执行 `prepareDatabase`；持锁时超时退出；跳过/学习事件的幂等键与快照外键；快照顺序号唯一；每题最多一条答对记录；`seq` 跨表递增与并发事务顺序；已有练习记录时重新执行种子；真实进程在空库上启动后健康检查 200、重启后仍 12 题；错误描述展开 cause；图形参数不含所求边
+- [x] 8.5 题目措辞（第 1、2 题提示，第 2、3 关简介"完全一样"，第 11 题"去掉了"）；README 补镜像内执行迁移的命令；计划 Follow-ups 记录留给 C、D 的注意事项
+
 ## Workflow follow-up
 
 - 开 PR 合并 `change/data-model-question-bank` 到 `main`（squash），在 `mydoc/plans/polygon-area-demo/` 中将 B 打勾。

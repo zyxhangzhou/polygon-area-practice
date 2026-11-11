@@ -1,3 +1,4 @@
+CREATE SEQUENCE "public"."practice_record_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1;--> statement-breakpoint
 CREATE TABLE "attempts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"session_id" uuid NOT NULL,
@@ -8,6 +9,7 @@ CREATE TABLE "attempts" (
 	"is_correct" boolean NOT NULL,
 	"attempt_no" integer NOT NULL,
 	"matched_mistake" text,
+	"seq" bigint DEFAULT nextval('practice_record_seq') NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "attempts_client_id_uq" UNIQUE("session_id","client_attempt_id"),
 	CONSTRAINT "attempts_attempt_no_uq" UNIQUE("session_id","question_id","attempt_no"),
@@ -27,6 +29,7 @@ CREATE TABLE "learning_events" (
 	"type" text NOT NULL,
 	"client_event_id" uuid NOT NULL,
 	"payload" jsonb,
+	"seq" bigint DEFAULT nextval('practice_record_seq') NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "learning_events_client_id_uq" UNIQUE("session_id","client_event_id"),
 	CONSTRAINT "learning_events_type_ck" CHECK ("learning_events"."type" in ('explanation_text_opened', 'video_started', 'video_completed'))
@@ -48,6 +51,7 @@ CREATE TABLE "question_skips" (
 	"session_id" uuid NOT NULL,
 	"question_id" integer NOT NULL,
 	"client_request_id" uuid NOT NULL,
+	"seq" bigint DEFAULT nextval('practice_record_seq') NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "question_skips_client_id_uq" UNIQUE("session_id","client_request_id")
 );
@@ -96,4 +100,5 @@ ALTER TABLE "questions" ADD CONSTRAINT "questions_stage_id_stages_id_fk" FOREIGN
 ALTER TABLE "session_questions" ADD CONSTRAINT "session_questions_session_id_practice_sessions_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."practice_sessions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session_questions" ADD CONSTRAINT "session_questions_question_id_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."questions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session_questions" ADD CONSTRAINT "session_questions_stage_id_stages_id_fk" FOREIGN KEY ("stage_id") REFERENCES "public"."stages"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "attempts_one_correct_uq" ON "attempts" USING btree ("session_id","question_id") WHERE is_correct;--> statement-breakpoint
 CREATE UNIQUE INDEX "practice_sessions_one_in_progress_uq" ON "practice_sessions" USING btree ("learner_id") WHERE status = 'in_progress';

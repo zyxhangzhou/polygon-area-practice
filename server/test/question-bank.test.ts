@@ -1,11 +1,19 @@
+import { randomUUID } from 'node:crypto';
 import { asc, eq, isNotNull } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 import { afterAll, describe, expect, it } from 'vitest';
 import { QUESTIONS, STAGES } from '../src/content/questions.js';
-import { questions, stages } from '../src/db/schema.js';
+import {
+  attempts,
+  learners,
+  practiceSessions,
+  questions,
+  sessionQuestions,
+  stages,
+} from '../src/db/schema.js';
 import { seed, SeedValidationError } from '../src/db/seed.js';
-import { TEST_DATABASE_URL } from './helpers.js';
+import { resetPracticeData, TEST_DATABASE_URL } from './helpers.js';
 
 const pool = new pg.Pool({ connectionString: TEST_DATABASE_URL });
 const db = drizzle(pool);
@@ -148,5 +156,41 @@ describe('种子', () => {
     await expect(run).rejects.toThrow(SeedValidationError);
     await expect(run).rejects.toThrow(/题目 3 .*题目 ID 不能删除/);
     expect(await db.select().from(questions).orderBy(asc(questions.id))).toEqual(before);
+  });
+
+  it('已有练习记录时重新执行种子：会话、快照、作答不变', async () => {
+    await resetPracticeData(pool);
+    const [l] = await db.insert(learners).values({}).returning();
+    const [ses] = await db.insert(practiceSessions).values({ learnerId: l!.id }).returning();
+    await db.insert(sessionQuestions).values([
+      { sessionId: ses!.id, questionId: 1, position: 1, stageId: 1 },
+      { sessionId: ses!.id, questionId: 2, position: 2, stageId: 1 },
+    ]);
+    await db.insert(attempts).values({
+      sessionId: ses!.id,
+      questionId: 1,
+      clientAttemptId: randomUUID(),
+      rawInput: '40',
+      normalizedValue: '40',
+      isCorrect: true,
+      attemptNo: 1,
+    });
+    const snapshot = async () => ({
+      sessions: await db.select().from(practiceSessions),
+      snapshot: await db.select().from(sessionQuestions),
+      attempts: await db.select().from(attempts),
+    });
+    const before = await snapshot();
+    await seed(db);
+    expect(await snapshot()).toEqual(before);
+    await resetPracticeData(pool);
+  });
+
+  it('库中有种子之外的关卡：拒绝并提示关卡 ID 不能删除', async () => {
+    const run = seed(db, {
+      stages: STAGES.filter((s) => s.id !== 4),
+      questions: QUESTIONS.filter((q) => q.stageId !== 4),
+    });
+    await expect(run).rejects.toThrow(/关卡 4 在数据库中但不在种子中/);
   });
 });
