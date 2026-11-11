@@ -20,7 +20,7 @@
 
 - [x] 3.1 用开发库中已结束的会话打开总结页，核对数字与 `GET /summary` 一致，回看一题，点"再练一次"进入新会话；结果记入 `docs/verification.md`
 - [x] 3.3 浏览器中打开练习记录，查看上一次练习的总结，确认当前会话不变；结果记入 `docs/verification.md`
-- [ ] 3.2 `npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
+- [x] 3.2 `npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
 
 ## Workflow follow-up
 

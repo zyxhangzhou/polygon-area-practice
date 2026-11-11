@@ -153,3 +153,4 @@
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · F 的 OpenSpec 四个 artifact 已生成并通过 strict 校验，等待用户评审
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · F 实现完成，开 PR #6，CI 两个 job 通过；真实浏览器验证见 `docs/verification.md`；等待用户评审合并
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · 用户评审 PR #6：加入练习记录、调整建议复习；出 v3
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · F 加入练习记录后 CI 两个 job 通过；等待用户评审合并
