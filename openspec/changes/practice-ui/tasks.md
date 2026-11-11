@@ -21,7 +21,7 @@
 ## 4. 真实运行与文档
 
 - [x] 4.1 前后端都启动，在浏览器中完整做完 12 题：包括答错、看解析后订正、跳过、回去重做、中途刷新、中途停掉后端再提交（应提示结果不确定）、恢复后重试只记录一次；结果记入 `docs/verification.md`（浏览器窗口最小化无法截图，改用页面状态与数据库查询作为证据）
-- [ ] 4.2 README 补充前端测试的运行方法；在计划的 Follow-ups 中标注重放显示规则已由 E 取代；`npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
+- [x] 4.2 README 补充前端测试的运行方法；在计划的 Follow-ups 中标注重放显示规则已由 E 取代；`npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
 
 ## Workflow follow-up
 

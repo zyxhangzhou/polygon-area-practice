@@ -147,4 +147,4 @@
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · E 开始：分支 `change/practice-ui`
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · E 的 OpenSpec 四个 artifact 已生成并通过 strict 校验，等待用户评审（含：重放显示规则修订、结束练习归 E）
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · 用户确认 E 的 artifact；出 v2（E 加入结束练习），开始实现 E
-- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · E 实现完成，开 PR #5；真实浏览器验证见 `docs/verification.md`
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · E 实现完成，开 PR #5，CI 两个 job 通过；真实浏览器验证见 `docs/verification.md`；等待用户评审合并
