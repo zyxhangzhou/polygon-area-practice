@@ -37,9 +37,12 @@ npm run dev                   # 同时启动后端（:3000）与前端开发服�
 ### 运行测试
 
 ```bash
-docker compose up -d db       # 测试需要真实 Postgres（使用独立的 polygon_test 库）
-npm test
+docker compose up -d db       # 后端测试需要真实 Postgres（使用独立的 polygon_test 库）
+npm test                      # 依次运行后端测试和前端测试
 ```
+
+- 只跑前端测试：`npm run test -w web`。前端测试在 jsdom 中渲染页面，用模拟的 `fetch` 代替后端，不需要数据库。
+- 需要真实浏览器的验证，记录在 [docs/verification.md](docs/verification.md)。
 
 测试**不读 `.env`**。数据库端口不是默认的 55432 时，在 shell 中指定：
 

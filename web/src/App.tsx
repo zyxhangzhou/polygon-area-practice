@@ -1,24 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { HomePage } from './pages/HomePage';
+import { PracticePage } from './pages/PracticePage';
+import { SummaryPage } from './pages/SummaryPage';
+import { StoreProvider } from './practice/context';
+import { PracticeStore } from './practice/store';
+import { navigate, useRoute } from './router';
 
-type Health = { status: string; db: string };
-
-export function App() {
-  const [health, setHealth] = useState<Health | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then(async (res) => setHealth((await res.json()) as Health))
-      .catch(() => setError('无法连接后端'));
-  }, []);
-
+export function App({ store: injected }: { store?: PracticeStore }) {
+  const [store] = useState(() => injected ?? new PracticeStore());
+  const route = useRoute();
   return (
-    <main style={{ fontFamily: 'sans-serif', padding: 24 }}>
-      <h1>图形小镇 · 多边形面积练习</h1>
-      <p>项目骨架已就绪，练习功能开发中。</p>
-      <p data-testid="health">
-        后端状态：{error ?? (health ? `${health.status}（数据库：${health.db}）` : '检查中…')}
-      </p>
-    </main>
+    <StoreProvider store={store}>
+      {route.page === 'home' && <HomePage />}
+      {route.page === 'practice' && <PracticePage qid={route.qid} />}
+      {route.page === 'summary' && <SummaryPage />}
+      {route.page === 'not-found' && (
+        <main className="page">
+          <p>页面不存在。</p>
+          <button onClick={() => navigate('/')}>回到首页</button>
+        </main>
+      )}
+    </StoreProvider>
   );
 }
