@@ -1,7 +1,20 @@
 import { buildApp } from './app.js';
 import { ConfigError, loadConfig } from './config.js';
+import { prepareDatabase } from './db/prepare.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
+
+/** 连接被拒绝时 pg 抛 AggregateError，message 为空，需展开内部错误 */
+function describeError(err: unknown): string {
+  if (err instanceof AggregateError && err.errors.length > 0) {
+    return err.errors.map(describeError).join('; ');
+  }
+  if (err instanceof Error) {
+    const code = (err as { code?: string }).code;
+    return [code, err.message].filter(Boolean).join(' ') || err.name;
+  }
+  return String(err);
+}
 
 async function main() {
   let config;
@@ -17,6 +30,20 @@ async function main() {
   }
 
   const app = await buildApp(config);
+
+  // 先迁移、写入题库，再对外服务；失败直接退出，不带着残缺的表结构运行
+  try {
+    await prepareDatabase(config.databaseUrl, app.log);
+  } catch (err) {
+    app.log.error({ err }, 'database preparation failed');
+    const target = new URL(config.databaseUrl);
+    console.error(
+      `数据库准备失败（迁移或写入题库）：${describeError(err)}\n` +
+        `  连接目标：${target.hostname}:${target.port || 5432}${target.pathname}`,
+    );
+    await app.close().catch(() => {});
+    process.exit(1);
+  }
 
   let shuttingDown = false;
   const shutdown = async (signal: string) => {
