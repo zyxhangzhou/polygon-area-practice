@@ -23,8 +23,8 @@
 | Order | ID | Change | Ref | Depends on | Status |
 |---|---|---|---|---|---|
 | 1 | A | 项目骨架 | `project-scaffold`（已归档 `2026-11-11-project-scaffold`） | — | ✅ merged #1 |
-| 2 | B | 数据模型与题库 | `data-model-question-bank`（分支 `change/data-model-question-bank`） | A | pr #2 |
-| 3 | C | 判题核心 | `grading-core` | B | planned |
+| 2 | B | 数据模型与题库 | `data-model-question-bank`（已归档 `2026-11-11-data-model-question-bank`） | A | ✅ merged #2 |
+| 3 | C | 判题核心 | `grading-core`（分支 `change/grading-core`） | B | pr #3 |
 | 4 | D | 练习会话 API | `practice-session-api` | C | planned |
 | 5 | E | 答题主流程前端 | `practice-ui` | D | planned |
 | 6 | F | 学习总结页 | `summary-ui` | D, E | planned |
@@ -108,6 +108,7 @@
 - 2026-11-11 · fab477d6 · PR #2 子代理评审，留给后续 change：
   - **C**：作答字段是 `numeric(10,2)`，超过 8 位整数会溢出（报 22003，变成 500）。输入校验要限制长度或上限，并拒绝超过 2 位小数（否则会被静默舍入）。
   - **D**：两个"开始练习"请求并发时，第二个会撞上部分唯一索引（23505），要捕获后返回已有会话。作答、跳过、学习事件都要先锁住会话行（`FOR UPDATE`）再写入，`seq` 才能代表会话内的实际顺序。前端补报的学习事件，服务端记录的是到达时间。
+  - **D**（C 的 design D6）：传给 `summarize` 的记录带数据库原值 `seq`；会话结束后产生的学习事件不传入：给 `practice_sessions` 加 `completed_seq`（结束时取 `nextval('practice_record_seq')`），只传 `seq < completed_seq` 的事件，不按 `created_at` 过滤（PR #3 评审）。不合法输入（`gradeAnswer` 返回 `invalid`）不写 `attempts`，直接 400 并返回 `message`。
   - **D/F**：判断"答对前是否打开过解析""最近一次操作是不是跳过"时用 `seq`，不用 `created_at`。
 
 ## Open questions
@@ -122,3 +123,8 @@
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · PR #1 子代理评审，修复 3 个问题并补测试（19/19 任务，34 个测试）；squash merge 为 c26e646；OpenSpec 归档为 `2026-11-11-project-scaffold`
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · B 开始：分支 `change/data-model-question-bank`
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · B 实现完成（14/14 任务，73 个测试，CI 两个 job 通过），开 PR #2；测试库隔离（Follow-up）已在 B 中完成
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · PR #2 子代理评审，修复后 22/22 任务、91 个测试；squash merge 为 7f7d960；OpenSpec 归档为 `2026-11-11-data-model-question-bank`（在 C 分支上提交）
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · C 开始：分支 `change/grading-core`
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · C 的 OpenSpec 四个 artifact 已生成并通过 strict 校验，等待用户评审
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · C 实现完成（7/7 任务，新增 99 个单元测试，共 190 个），开 PR #3
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · PR #3 子代理评审，修复 5 个问题与 3 项取舍（11/11 任务，grading 测试 118 个）
