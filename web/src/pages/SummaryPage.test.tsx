@@ -71,6 +71,17 @@ describe('总结页', () => {
     expect(stats).toHaveTextContent('共 12 题：一次做对 10 题，订正后做对 1 题，需回顾 1 题');
   });
 
+  it('数字原样取自接口，不由题目列表重新计算', async () => {
+    const odd = realRun();
+    odd.rates = { firstTry: 77, completion: 88 };
+    odd.counts = { total: 12, firstTry: 3, corrected: 4, notYet: 5 };
+    open(odd);
+    const stats = await screen.findByRole('region', { name: '统计' });
+    expect(within(stats).getByText('77%')).toBeInTheDocument();
+    expect(within(stats).getByText('88%')).toBeInTheDocument();
+    expect(stats).toHaveTextContent('共 12 题：一次做对 3 题，订正后做对 4 题，需回顾 5 题');
+  });
+
   it('三组列表与需回顾的原因', async () => {
     open(
       summaryResponse({
@@ -173,6 +184,12 @@ describe('总结页', () => {
     open(apiError(404, 'SESSION_NOT_FOUND'));
     await waitFor(() => expect(window.location.pathname).toBe('/'));
     expect(storage.getSessionId()).toBeNull();
+  });
+
+  it('其他拒绝（如请求过多）：不清除保存的会话，提示重新读取', async () => {
+    open(apiError(429, 'RATE_LIMITED', '请求太频繁了'));
+    expect(await screen.findByText(/暂时没能读取学习总结/)).toBeInTheDocument();
+    expect(storage.getSessionId()).toBe(SESSION_ID);
   });
 
   it('没有保存会话：回首页', async () => {

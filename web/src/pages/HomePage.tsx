@@ -43,8 +43,8 @@ export function HomePage() {
                 solved: res.data.questions.filter((q) => q.status === 'solved').length,
               },
         );
-      } else if (res.kind === 'rejected') {
-        // 会话已失效：清除，重新开始
+      } else if (res.kind === 'rejected' && res.code === 'SESSION_NOT_FOUND') {
+        // 会话已失效：清除，重新开始。其他拒绝（如请求过多）不清除，免得丢掉学生的记录
         storage.setSessionId(null);
         setState({ kind: 'none' });
       } else {

@@ -136,6 +136,35 @@ describe('写队列', () => {
   });
 });
 
+describe('换会话', () => {
+  it('等待响应期间换了会话：旧结果不影响新会话，新会话的请求照常发送', async () => {
+    let releaseOld!: (r: ApiResult<unknown>) => void;
+    const paths: string[] = [];
+    const store = new PracticeStore({
+      request: (async (_m: string, path: string) => {
+        paths.push(path);
+        if (path.includes('old')) return new Promise((r) => (releaseOld = r));
+        return ok(
+          attemptResponse({ questionId: 1, correct: true }, sessionView({ 1: 'solved' })),
+          201,
+        );
+      }) as never,
+      navigate: vi.fn(),
+    });
+    store.useSession('old', sessionView({ 1: 'wrong' }));
+    store.submitAnswer(1, '40');
+    await settle();
+    store.useSession('new', sessionView());
+    store.submitAnswer(1, '40');
+    releaseOld(uncertain);
+    await settle();
+    await settle();
+    expect(paths).toEqual(['/api/sessions/old/attempts', '/api/sessions/new/attempts']);
+    expect(store.getState().pendingRetry).toBeNull();
+    expect(store.getState().session?.questions[0]!.status).toBe('solved');
+  });
+});
+
 describe('错误码处理', () => {
   it('INVALID_ANSWER：在该题显示后端提示', async () => {
     const { store } = setup({

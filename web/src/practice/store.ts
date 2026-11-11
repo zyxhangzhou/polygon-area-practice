@@ -233,6 +233,8 @@ export class PracticeStore {
       while (this.queue.length > 0 && !this.state.pendingRetry) {
         const job = this.queue[0]!;
         const res = await this.send(job);
+        // 等待响应期间换了会话（队列被替换）：这个结果已与当前会话无关
+        if (this.queue[0] !== job) continue;
         if (res.kind === 'uncertain') {
           if (job.type === 'event') {
             // 重试后仍不确定：放弃这条事件，继续后面的请求

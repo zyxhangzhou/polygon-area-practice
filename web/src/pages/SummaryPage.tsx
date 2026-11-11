@@ -37,8 +37,8 @@ export function SummaryPage() {
     if (!sessionId) return null;
     const res = await request<SummaryResponse>('GET', `/api/sessions/${sessionId}/summary`);
     if (res.kind === 'ok') return res.data;
-    if (res.kind === 'rejected') {
-      // 会话已失效：清除并回首页
+    // 只有会话确实不存在时才清除：保存的会话 ID 是匿名学生找回记录的唯一凭据
+    if (res.kind === 'rejected' && res.code === 'SESSION_NOT_FOUND') {
       storage.setSessionId(null);
       navigate('/', { replace: true });
     }
