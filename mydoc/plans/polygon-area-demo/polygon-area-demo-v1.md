@@ -111,6 +111,9 @@
   - **D**（C 的 design D6）：传给 `summarize` 的记录带数据库原值 `seq`；会话结束后产生的学习事件不传入：给 `practice_sessions` 加 `completed_seq`（结束时取 `nextval('practice_record_seq')`），只传 `seq < completed_seq` 的事件，不按 `created_at` 过滤（PR #3 评审）。不合法输入（`gradeAnswer` 返回 `invalid`）不写 `attempts`，直接 400 并返回 `message`。
   - **D/F**：判断"答对前是否打开过解析""最近一次操作是不是跳过"时用 `seq`，不用 `created_at`。
 
+- 2026-11-11 · fab477d6 · D 评审讨论：作答重放返回首次结果（先错后对后重放第一次，`result` 仍为错误），`session` 是当前状态。
+  - **E**：收到 `replayed: true` 时只按 `session` 刷新界面，不弹出对错反馈。
+
 ## Open questions
 
 （暂无）
