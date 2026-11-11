@@ -35,7 +35,7 @@
 | 4 | D | 练习会话 API | `practice-session-api`（PR #4） | C | ✅ merged #4（archived） |
 | 5 | E | 答题主流程前端 | `practice-ui`（PR #5） | D | ✅ merged #5（archived） |
 | 6 | F | 学习总结页 | `summary-ui`（已归档 `2026-11-12-summary-ui`） | D, E | ✅ merged #6（archived） |
-| 7 | G | 首次上线 Render | `deploy-render`（分支 `change/deploy-render`） | E | in progress |
+| 7 | G | 首次上线 Render | `deploy-render`（分支 `change/deploy-render`，PR #7） | E | PR open，等待 Render 部署 |
 | 8 | H | 图形小镇与圆圆 | `town-and-companion` | E | planned |
 | 9 | I | 视频解析 | `video-explanations` | E | planned |
 | 10 | J | 文档与交付 | `docs-and-delivery` | A–I | planned |
@@ -156,3 +156,4 @@
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · F 加入练习记录后 CI 两个 job 通过；等待用户评审合并
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · F squash merge 为 dfcfbbd；OpenSpec 归档为 `2026-11-12-summary-ui`（在 G 分支上提交）
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · G 开始：分支 `change/deploy-render`
+- 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · G 实现完成（限流、render.yaml、冒烟检查、部署文档），开 PR #7，CI 两个 job 通过；本地 Docker 冒烟检查通过；等待用户在 Render 创建 Blueprint
