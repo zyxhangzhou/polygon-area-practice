@@ -3,8 +3,10 @@ import Fastify, { type FastifyError, type FastifyServerOptions } from 'fastify';
 import type pg from 'pg';
 import type { Config } from './config.js';
 import { createDb } from './db.js';
-import { errorBody } from './errors.js';
+import { AppError, errorBody } from './errors.js';
 import { healthRoutes } from './routes/health.js';
+import { learnerRoutes } from './routes/learners.js';
+import { sessionRoutes } from './routes/sessions.js';
 import { registerNotFound } from './static.js';
 
 export type AppOptions = Pick<Config, 'databaseUrl' | 'logLevel' | 'nodeEnv' | 'webDistDir'>;
@@ -39,7 +41,10 @@ export async function buildApp(config: AppOptions, extras: BuildAppExtras = {}) 
     reply.header('x-request-id', req.id);
   });
 
-  app.setErrorHandler((err: FastifyError, req, reply) => {
+  app.setErrorHandler((err: FastifyError | AppError, req, reply) => {
+    if (err instanceof AppError) {
+      return reply.code(err.status).send(errorBody(err.code, err.message, err.details));
+    }
     const status = err.statusCode && err.statusCode >= 400 ? err.statusCode : 500;
     if (status >= 500) {
       req.log.error({ err }, 'unhandled error');
@@ -57,6 +62,8 @@ export async function buildApp(config: AppOptions, extras: BuildAppExtras = {}) 
   });
 
   await app.register(healthRoutes);
+  await app.register(learnerRoutes);
+  await app.register(sessionRoutes);
   await registerNotFound(app, config.webDistDir);
 
   return app;

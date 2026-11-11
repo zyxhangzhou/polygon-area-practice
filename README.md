@@ -65,6 +65,47 @@ TEST_DATABASE_URL=postgres://postgres:postgres@localhost:<端口>/polygon_test n
 
 测试开始前会**重建测试库**（`TEST_DATABASE_URL` 的库名必须以 `_test` 结尾，否则拒绝执行），再迁移并写入题库；测试文件串行执行。
 
+## 接口
+
+所有接口在 `/api` 下，请求体和响应体都是 JSON。没有登录：会话 ID 是随机 UUID，也是访问凭证，拿到它的人可以代为作答（已知限制）。写接口的幂等键（`clientAttemptId` 等）由前端生成 UUID，重试时沿用同一个键。
+
+| 方法与路径 | 请求体 | 说明 |
+|---|---|---|
+| `GET /api/health` | — | 健康检查 |
+| `POST /api/learners` | `{ nickname? }` | 创建匿名学生 → `201 { learnerId }` |
+| `POST /api/sessions` | `{ learnerId }` | 开始或继续练习：有进行中的会话返回 `200`，否则新建 `201`；返回会话状态 |
+| `GET /api/sessions/:id` | — | 会话状态：关卡、每题状态、当前题、能否完成、统计 |
+| `GET /api/sessions/:id/questions/:qid` | — | 题目详情，不含答案和解析 |
+| `POST /api/sessions/:id/attempts` | `{ questionId, clientAttemptId, answer }` | 提交作答：新作答 `201`；重放或已答对 `200`；返回 `{ replayed, alreadySolved, result, session }` |
+| `POST /api/sessions/:id/questions/:qid/skip` | `{ clientRequestId }` | 跳过：`201`；重放或已答对 `200` |
+| `GET /api/sessions/:id/questions/:qid/explanation` | — | 解析：答错、跳过、答对后或会话结束后可获取 |
+| `POST /api/sessions/:id/events` | `{ questionId, type, clientEventId, payload? }` | 学习行为：`explanation_text_opened` / `video_started` / `video_completed` |
+| `POST /api/sessions/:id/complete` | `{ endedEarly }` | 结束练习；没做完时须 `endedEarly: true`；重复调用返回 `200` |
+| `GET /api/sessions/:id/summary` | — | 学习总结：每题分类、原因、行为事实，以及两个比率 |
+
+作答重放时，`result` 是那一次提交的结果，`session` 是当前状态。两者可能不同，例如先错后对之后重放第一次。
+
+### 错误码
+
+错误响应格式为 `{ "error": { "code", "message" } }`，`message` 是可以直接展示给学生的中文提示。`5xx` 只返回通用提示，细节只写日志。
+
+| 状态码 | `code` | 含义 |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | 请求体格式不对（缺字段、类型不对、`payload` 超过 1 KB 等） |
+| 400 | `INVALID_ANSWER` | 答案不合法（空、带单位、负数、超过 2 位小数等），不计作答次数；`error.reason` 给出原因代码 |
+| 400 | `BAD_REQUEST` | 请求体不是合法 JSON |
+| 403 | `EXPLANATION_LOCKED` | 还不能看这道题的解析，也不能上报它的学习行为 |
+| 404 | `LEARNER_NOT_FOUND` | 学生不存在 |
+| 404 | `SESSION_NOT_FOUND` | 会话不存在，或 ID 不是 UUID |
+| 404 | `QUESTION_NOT_IN_SESSION` | 这道题不在本次练习中 |
+| 404 | `NOT_FOUND` | 接口不存在 |
+| 409 | `SESSION_COMPLETED` | 练习已结束，不能再作答或跳过 |
+| 409 | `STAGE_LOCKED` | 题目所在关卡还没解锁 |
+| 409 | `IDEMPOTENCY_CONFLICT` | 同一个幂等键带了不同的内容 |
+| 409 | `NOT_FINISHED` | 还有题没完成，结束时需要 `endedEarly: true` |
+| 413 | `BAD_REQUEST` | 请求体超过 16 KB |
+| 500 | `INTERNAL_ERROR` | 服务器内部错误（包括数据库等锁超过 2 秒）；写请求可以用同一个幂等键安全重试 |
+
 ## 配置
 
 仓库中**只有一个** `.env`，放在根目录，由 `.env.example` 复制而来，不提交到 Git。各环境的取值方式：

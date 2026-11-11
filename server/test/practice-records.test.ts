@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
@@ -15,6 +15,8 @@ import { resetPracticeData, TEST_DATABASE_URL } from './helpers.js';
 
 const pool = new pg.Pool({ connectionString: TEST_DATABASE_URL });
 const db = drizzle(pool);
+/** 结束序号取自共用序列 */
+const nextSeq = sql<number>`nextval('practice_record_seq')`;
 
 afterAll(() => pool.end());
 beforeEach(() => resetPracticeData(pool));
@@ -73,8 +75,13 @@ describe('每个学生最多一个进行中的练习', () => {
 
   it('已完成的会话不占名额', async () => {
     const l = await newLearner();
-    const done = { learnerId: l.id, status: 'completed' as const, completedAt: new Date() };
-    await db.insert(practiceSessions).values([done, done]);
+    const done = () => ({
+      learnerId: l.id,
+      status: 'completed' as const,
+      completedAt: new Date(),
+      completedSeq: nextSeq,
+    });
+    await db.insert(practiceSessions).values([done(), done()]);
     await expect(db.insert(practiceSessions).values({ learnerId: l.id })).resolves.toBeDefined();
   });
 });
@@ -83,8 +90,28 @@ describe('会话状态一致', () => {
   it('completed 但没有结束时间被拒绝', async () => {
     const l = await newLearner();
     await expectViolation(
-      db.insert(practiceSessions).values({ learnerId: l.id, status: 'completed' }),
+      db
+        .insert(practiceSessions)
+        .values({ learnerId: l.id, status: 'completed', completedSeq: nextSeq }),
       'practice_sessions_completed_at_ck',
+    );
+  });
+
+  it('completed 但没有结束序号被拒绝', async () => {
+    const l = await newLearner();
+    await expectViolation(
+      db
+        .insert(practiceSessions)
+        .values({ learnerId: l.id, status: 'completed', completedAt: new Date() }),
+      'practice_sessions_completed_seq_ck',
+    );
+  });
+
+  it('in_progress 却有结束序号被拒绝', async () => {
+    const l = await newLearner();
+    await expectViolation(
+      db.insert(practiceSessions).values({ learnerId: l.id, completedSeq: nextSeq }),
+      'practice_sessions_completed_seq_ck',
     );
   });
 
