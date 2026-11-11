@@ -1,0 +1,38 @@
+# 本地一条命令启动：docker compose up --build
+# 只起数据库（本地开发 / 跑测试）：docker compose up -d db
+name: polygon-area-practice
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: polygon
+    ports:
+      - '${DB_PORT:-55432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d polygon']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  app:
+    build: .
+    # 不使用 env_file：本地 .env 中的 DATABASE_URL 指向 localhost，在容器内会连错地址
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/polygon
+      NODE_ENV: production
+      PORT: '3000'
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - '${APP_PORT:-3000}:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

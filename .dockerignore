@@ -1,0 +1,13 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.env
+.env.*
+docs
+mydoc
+openspec
+.claude
+.github
+coverage
+*.log

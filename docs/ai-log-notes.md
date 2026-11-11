@@ -27,3 +27,47 @@ AI 生成 `docs/project-outline.md` v0.1 后，本人评审发现以下问题（
 
 - 向导角色：AI 提议小狐狸"小方"，本人认为不够亲和；AI 改为"米米"后，本人最终定为带卷尺的小熊"圆圆"。
 - **验证方式**：上述规则将写入 OpenSpec 规格的场景（scenario），并转为集成测试用例（大纲 §6 第 8、9 条）。
+
+---
+
+## 2026-11-11 · change A（project-scaffold）OpenSpec 评审 · session fab477d6
+
+AI 用 OpenSpec 生成 proposal / specs / design / tasks 后，本人评审提出 4 点：
+
+| # | AI 方案 | 本人意见 | 修正 |
+|---|---|---|---|
+| 1 | 规格写"所有非 `/api/`、不对应静态文件的 GET 都回退到 `index.html`" | 丢失的 JS、图片、视频会变成 200 + HTML，掩盖真实错误，增加排障难度 | 只有页面导航请求（无扩展名且 `Accept` 含 `text/html`）才回退；带扩展名的缺失资源返回 404；新增两个场景（缺失脚本、缺失视频） |
+| 2 | 没有说明 `.env` 放在哪、谁读取 | 需明确位置、开发与测试如何加载、Compose 显式传哪些变量 | design 新增 D3a：根目录唯一 `.env`；开发用 Node `--env-file-if-exists`（先实测确认 shell 变量优先）；测试不读 `.env`；Compose 的 `app` 不用 `env_file`，显式传变量，避免本地 `localhost` 连接串进入容器 |
+| 3 | 不用 Testcontainers 的理由写成"WSL / CI 中排障更复杂" | 理由不准确 | 改为"现有 Compose 和 CI service 已满足需求，再引入一套数据库启动机制收益有限" |
+| 4 | 完全不配 ESLint | 应配最小 ESLint 并进 CI | 新增 D9：recommended + react-hooks + eslint-config-prettier，`npm run lint` 进 CI |
+
+- **验证方式**：第 1 条落为 app-hosting 规格中的 404 场景并转为集成测试；第 2 条在任务 1.2 / 4.1 中验证；第 4 条在任务 1.4 中故意写未使用变量验证 lint 生效。
+
+---
+
+## 2026-11-11 · change A 实现中的调试 · session fab477d6
+
+| # | 现象 | 排查 | 处理 |
+|---|---|---|---|
+| 1 | `npm view` 显示 TypeScript 最新版是 7.0，但 typescript-eslint 的 peer 依赖要求 `<6.1` | 装依赖前先查 peer 依赖 | 锁定 `typescript@~6.0.3` |
+| 2 | 健康检查测试 2 秒超时返回 503，数据库容器显示 healthy | 用 node 直接连 `127.0.0.1:5432` 也超时；`docker inspect` 显示请求了 5432 端口映射，但 `NetworkSettings.Ports` 为空，说明宿主端口没绑上（Docker Desktop，宿主已有程序占用） | 改用 55432 后测试全部通过；默认宿主端口改为 55432，README 常见故障写明用 `docker port` 排查 |
+| 3 | `npm run dev` 时 Vite 报 5173–5190 端口全部被占用，但 `ss -ltn` 看不到任何监听 | node 直接 `listen(5173)` 也报 `EADDRINUSE`；逐个探测发现 5100–5500 一段都不能用，`wslinfo --networking-mode` 为 mirrored，判断是 Windows 侧保留了这一端口段 | Vite 端口改为从根 `.env` 读取 `WEB_DEV_PORT`（默认 5173，`strictPort`），本机设为 4173 |
+| 4 | 生成 compose 时用 sed 插入 `name:` 到了 `services:` 下面，YAML 报错 | 读错误信息定位到第 6 行 | 改用脚本精确替换 |
+
+- 2、3 两条都是"测试 / 实际运行暴露出的环境问题"，修复后通过 `npm test`（18 个测试）和 `docker compose up --build` + curl 冒烟验证。
+
+---
+
+## 2026-11-11 · change A 的 PR 评审（子代理）· session fab477d6
+
+本人要求另起一个子代理审 PR #1。子代理只读代码，用临时脚本复现问题，找到 3 个真问题：
+
+| # | 问题 | 子代理如何证实 | 处理 |
+|---|---|---|---|
+| 1 | 健康检查只用 `Promise.race` 超时，超时的查询仍占着连接；数据库卡住后连接池被占满，恢复后仍一直 503，`app.close()` 也关不掉 | 写一个可"冻结"的 TCP 代理复现：10 个连接全卡住，解冻后仍 503，`close()` 8 秒未结束 | 连接池加 `query_timeout` 与 `keepAlive`；关闭流程加 10 秒强制退出、忽略重复信号 |
+| 2 | 没有 `setErrorHandler`，Fastify 自带的 400 格式与约定的 `{error:{code,message}}` 不同，500 会把内部错误信息返回前端 | 发错误 JSON、抛异常实际复现 | spec 新增"统一错误响应格式"需求与 2 个场景，再实现 |
+| 3 | README 让人在 `.env` 里改 `TEST_DATABASE_URL`，但测试不读 `.env` | 读代码，与 README 自身的说明矛盾 | 改为在 shell 中设置 |
+
+- 测试缺口：原来的"数据库不可达"测试用 `127.0.0.1:1`，连接被立即拒绝，删掉超时逻辑测试也照样通过。新增"能连上但不回应"的假服务器测试，以及用冻结代理的"卡住后恢复"测试。
+- **验证方式**：先实现修复并让新测试通过（34 个），再临时撤掉修复：撤掉 `query_timeout` 后恢复测试失败，撤掉错误处理后 2 个错误格式测试失败。说明测试确实能抓到这些问题。
+- 本人取舍：测试库隔离推迟到 B（B 才开始写数据）；`concurrently` 不做（收益太小）。
