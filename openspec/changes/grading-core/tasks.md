@@ -19,6 +19,13 @@
 
 - [x] 4.1 `mydoc/plans/polygon-area-demo/` 的 Follow-ups（D）补充 design D6 的约定；`npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
 
+## 5. 评审修复（子代理审 PR #3）
+
+- [x] 5.1 行为事实增加 `textOpenedBeforeSolved` / `videoStartedBeforeSolved` / `videoCompletedBeforeSolved`；快照顺序号重复时报错；验证测试区分"看视频后做对"与"做对后看视频"
+- [x] 5.2 输入：识别 `cm2`、`m2`、`平方米` 等单位为 `has_unit`；末尾 `。` 去掉；负号后可有空白；去掉零宽字符；验证对应测试用例
+- [x] 5.3 补测试并做变异检查：同一数组乱序传入、解锁连锁、先查原始长度、去前导零后判位数；分别改坏对应代码，每项都有测试失败
+- [x] 5.4 design D6 改为按 `seq` 过滤结束后的学习事件（D 加 `completed_seq`），计划 Follow-ups 同步
+
 ## Workflow follow-up
 
 - 开 PR 合并 `change/grading-core` 到 `main`（squash），在计划中将 C 打勾。

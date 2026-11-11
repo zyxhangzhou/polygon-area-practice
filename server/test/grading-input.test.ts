@@ -41,6 +41,12 @@ describe('输入规范化与校验', () => {
     ['30。5', '30.5'],
     ['　 48 ', '48'],
     ['30.00', '30'],
+    ['000000001', '1'],
+    ['30。', '30'],
+    ['30.5。', '30.5'],
+    ['48\u200b', '48'],
+    ['\u200b48', '48'],
+    ['4\u200b8', '48'],
   ])('%j 合法，规范值 %j', (raw, value) => {
     expect(parseAnswerInput(raw)).toEqual({ ok: true, value });
   });
@@ -54,9 +60,15 @@ describe('输入规范化与校验', () => {
     ['-0', 'negative'],
     ['－3.5', 'negative'],
     ['−2', 'negative'],
+    ['- 5', 'negative'],
+    ['－　５', 'negative'],
     ['30cm²', 'has_unit'],
     ['30平方厘米', 'has_unit'],
     ['30 cm', 'has_unit'],
+    ['30cm2', 'has_unit'],
+    ['30 m2', 'has_unit'],
+    ['30 CM2', 'has_unit'],
+    ['6.5平方米', 'has_unit'],
     ['6.125', 'too_many_decimals'],
     ['30.000', 'too_many_decimals'],
     ['123456789', 'too_large'],
@@ -75,6 +87,13 @@ describe('输入规范化与校验', () => {
       expect(r.reason).toBe(reason);
       expect(r.message.length).toBeGreaterThan(0);
     }
+  });
+
+  it('先检查原始长度，再去空白：首尾空格算在长度内', () => {
+    // 去掉空白后只剩 48，若先去空白再查长度就会被误判为合法
+    const raw = ' '.repeat(31) + '48';
+    expect(raw.length).toBe(33);
+    expect(parseAnswerInput(raw)).toMatchObject({ ok: false, reason: 'too_long' });
   });
 
   it('32 个字符以内不触发 too_long', () => {

@@ -18,6 +18,11 @@ describe('统计范围', () => {
     expect(() => new Log().summarize([...SNAPSHOT, SNAPSHOT[0]!])).toThrow(/重复/);
   });
 
+  it('快照内顺序号重复报错', () => {
+    const dup = SNAPSHOT.map((x) => (x.questionId === 2 ? { ...x, position: 1 } : x));
+    expect(() => new Log().summarize(dup)).toThrow(/顺序号/);
+  });
+
   it('总题数为 0 时比率为 0', () => {
     const s = summarize([], [], [], []);
     expect(s.counts.total).toBe(0);
@@ -118,7 +123,31 @@ describe('行为事实', () => {
       textOpened: false,
       videoStarted: true,
       videoCompleted: true,
+      textOpenedBeforeSolved: false,
+      videoStartedBeforeSolved: true,
+      videoCompletedBeforeSolved: true,
     });
+  });
+
+  it('看视频在答对之前还是之后，行为事实能区分', () => {
+    const after = question(
+      new Log().wrong(4, '60').right(4).event(4, 'video_started').summarize(),
+      4,
+    );
+    const before = question(
+      new Log().wrong(4, '60').event(4, 'video_started').right(4).summarize(),
+      4,
+    );
+    expect([after.outcome, before.outcome]).toEqual(['corrected', 'corrected']);
+    expect(after.facts.videoStarted).toBe(true);
+    expect(after.facts.videoStartedBeforeSolved).toBe(false);
+    expect(before.facts.videoStartedBeforeSolved).toBe(true);
+  });
+
+  it('没答对时 BeforeSolved 都是 false', () => {
+    const q = question(new Log().wrong(1).event(1, 'explanation_text_opened').summarize(), 1);
+    expect(q.facts.textOpened).toBe(true);
+    expect(q.facts.textOpenedBeforeSolved).toBe(false);
   });
 
   it('常见错误按首次出现顺序去重', () => {

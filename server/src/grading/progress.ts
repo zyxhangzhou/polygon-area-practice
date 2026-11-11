@@ -39,6 +39,10 @@ export interface QuestionFacts {
   textOpened: boolean;
   videoStarted: boolean;
   videoCompleted: boolean;
+  /** 以下三项：答对之前（按 seq）是否发生过；没答对时为 false。用于"播放了视频后做对了"这类建议 */
+  textOpenedBeforeSolved: boolean;
+  videoStartedBeforeSolved: boolean;
+  videoCompletedBeforeSolved: boolean;
 }
 
 export interface QuestionProgress {
@@ -73,6 +77,9 @@ export interface PracticeSummary {
   rates: { firstTry: number; completion: number };
 }
 
+const has = (events: readonly EventRecord[], type: LearningEventType) =>
+  events.some((e) => e.type === type);
+
 const bySeq = <T extends { seq: number }>(a: T, b: T) => a.seq - b.seq;
 
 function percent(n: number, total: number): number {
@@ -88,6 +95,8 @@ export function summarize(
   const items = [...snapshot].sort((a, b) => a.position - b.position);
   const ids = new Set(items.map((s) => s.questionId));
   if (ids.size !== items.length) throw new Error('题目快照中有重复的题');
+  if (new Set(items.map((s) => s.position)).size !== items.length)
+    throw new Error('题目快照中有重复的顺序号');
 
   const group = <T extends { questionId: number; seq: number }>(
     records: readonly T[],
@@ -113,6 +122,7 @@ export function summarize(
     const qe = eventsByQ.get(item.questionId) ?? [];
 
     const correct = qa.find((a) => a.isCorrect);
+    const beforeSolved = correct ? qe.filter((e) => e.seq < correct.seq) : [];
     let status: QuestionStatus;
     if (correct) status = 'solved';
     else {
@@ -126,8 +136,7 @@ export function summarize(
     let outcome: QuestionOutcome = 'not_yet';
     if (correct) {
       const firstAttemptCorrect = qa[0] === correct;
-      const sawExplanationBefore = qe.some((e) => e.seq < correct.seq);
-      outcome = firstAttemptCorrect && !sawExplanationBefore ? 'first_try' : 'corrected';
+      outcome = firstAttemptCorrect && beforeSolved.length === 0 ? 'first_try' : 'corrected';
     }
 
     const mistakes: string[] = [];
@@ -148,9 +157,12 @@ export function summarize(
         wrongCount: qa.filter((a) => !a.isCorrect).length,
         skipCount: qs.length,
         commonMistakes: mistakes,
-        textOpened: qe.some((e) => e.type === 'explanation_text_opened'),
-        videoStarted: qe.some((e) => e.type === 'video_started'),
-        videoCompleted: qe.some((e) => e.type === 'video_completed'),
+        textOpened: has(qe, 'explanation_text_opened'),
+        videoStarted: has(qe, 'video_started'),
+        videoCompleted: has(qe, 'video_completed'),
+        textOpenedBeforeSolved: has(beforeSolved, 'explanation_text_opened'),
+        videoStartedBeforeSolved: has(beforeSolved, 'video_started'),
+        videoCompletedBeforeSolved: has(beforeSolved, 'video_completed'),
       },
     };
   });

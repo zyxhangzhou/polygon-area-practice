@@ -27,12 +27,23 @@ export type ParsedInput =
   { ok: true; value: string } | { ok: false; reason: InvalidReason; message: string };
 
 const FULLWIDTH_DIGIT = /[０-９]/g;
-const MINUS = /^[-−－]/;
+/** 零宽字符：复制粘贴时常被带进来，看不见，直接去掉 */
+const ZERO_WIDTH = /[\u200B-\u200D\u2060\uFEFF]/g;
+const MINUS = /^[-−－]\s*/;
 const NUMBER_PREFIX = /^[0-9]+(?:\.[0-9]+)?/;
+/** 数字后面常见的单位写法（学生打不出 ²，常写成 cm2） */
+const UNIT =
+  /^\s*(?:(?:平方)?(?:毫米|厘米|分米|米|千米|公里)|(?:mm|cm|dm|m|km)[2²]?|千克|公斤|kg)\s*$/i;
 
-/** 去首尾空白（含全角空格），全角数字、全角小数点、中文句号转半角；不动中间的字符 */
+/**
+ * 去掉零宽字符和首尾空白（含全角空格），全角数字、全角小数点转半角；
+ * 末尾的中文句号是句号，去掉；其余的中文句号当小数点。不动中间的空白和其他字符。
+ */
 export function normalizeInput(raw: string): string {
   return raw
+    .replace(ZERO_WIDTH, '')
+    .trim()
+    .replace(/。+$/, '')
     .trim()
     .replace(FULLWIDTH_DIGIT, (c) => String.fromCharCode(c.charCodeAt(0) - 0xff10 + 0x30))
     .replace(/[．。]/g, '.');
@@ -54,13 +65,14 @@ export function parseAnswerInput(raw: string): ParsedInput {
     return { ok: true, value: canonical(s) };
   }
 
-  if (MINUS.test(s) && isDecimalString(s.slice(1))) return invalid('negative');
+  const minus = MINUS.exec(s);
+  if (minus && isDecimalString(s.slice(minus[0].length))) return invalid('negative');
   if (/^[0-9]+\.[0-9]{3,}$/.test(s)) return invalid('too_many_decimals');
 
   const prefix = NUMBER_PREFIX.exec(s)?.[0];
   if (prefix && isDecimalString(prefix)) {
     const rest = s.slice(prefix.length);
-    if (!/[0-9.]/.test(rest)) return invalid('has_unit');
+    if (UNIT.test(rest) || !/[0-9.]/.test(rest)) return invalid('has_unit');
   }
   return invalid('invalid_format');
 }

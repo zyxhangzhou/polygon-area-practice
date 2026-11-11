@@ -34,6 +34,38 @@ describe('题目状态', () => {
   });
 });
 
+describe('同一组记录乱序传入', () => {
+  it('作答按 seq 排序后再判断', () => {
+    // 数据库没有 ORDER BY 时返回顺序不固定
+    const s = summarize(
+      SNAPSHOT,
+      [
+        { questionId: 1, isCorrect: true, matchedMistake: null, seq: 5 },
+        { questionId: 1, isCorrect: false, matchedMistake: null, seq: 3 },
+      ],
+      [],
+      [],
+    );
+    expect(question(s, 1).outcome).toBe('corrected');
+  });
+
+  it('跳过与作答按 seq 判断最近一次', () => {
+    const s = summarize(
+      SNAPSHOT,
+      [
+        { questionId: 1, isCorrect: false, matchedMistake: null, seq: 9 },
+        { questionId: 1, isCorrect: false, matchedMistake: null, seq: 2 },
+      ],
+      [
+        { questionId: 1, seq: 10 },
+        { questionId: 1, seq: 1 },
+      ],
+      [],
+    );
+    expect(question(s, 1).status).toBe('skipped');
+  });
+});
+
 describe('关卡点亮与解锁', () => {
   it('第 1 关始终解锁，其余未解锁', () => {
     const s = new Log().summarize();
@@ -56,6 +88,12 @@ describe('关卡点亮与解锁', () => {
     const s = new Log().right(1).right(2).skip(3).wrong(3).summarize();
     expect(question(s, 3).status).toBe('wrong');
     expect(s.stages[1]!.unlocked).toBe(true);
+  });
+
+  it('解锁是连锁的：前面有一关没处理完，后面的关卡都不解锁', () => {
+    // 第 1 关第 3 题未作答；第 2 关全部处理过
+    const s = new Log().right(1).right(2).right(4).skip(5).right(6).summarize();
+    expect(s.stages.map((x) => x.unlocked)).toEqual([true, false, false, false]);
   });
 
   it('有一题未作答则下一关不解锁', () => {
