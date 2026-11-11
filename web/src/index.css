@@ -1,0 +1,145 @@
+:root {
+  --bg: #fdfaf3;
+  --fg: #2b2b2b;
+  --muted: #6b6b6b;
+  --primary: #e07a2f;
+  --ok: #2e8b57;
+  --bad: #c0392b;
+  --line: #d9d2c3;
+  font-family: system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+}
+body {
+  margin: 0;
+}
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 16px;
+}
+button {
+  font: inherit;
+  padding: 8px 14px;
+  margin: 4px 8px 4px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+button.link {
+  border: none;
+  background: none;
+  color: var(--muted);
+  text-decoration: underline;
+}
+.notice {
+  border-left: 4px solid var(--primary);
+  background: #fff4e8;
+  padding: 8px 12px;
+}
+.progress-title {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+.stages {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.stage {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+}
+.stage.locked {
+  color: var(--muted);
+}
+.stage-state {
+  margin-left: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.chip {
+  width: 36px;
+  padding: 4px 0;
+  margin: 0 4px 0 0;
+}
+.chip.solved {
+  background: var(--ok);
+  color: #fff;
+}
+.chip.wrong {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+.chip.skipped {
+  border-style: dashed;
+}
+.chip.active {
+  outline: 3px solid var(--primary);
+}
+.figure {
+  width: 100%;
+  max-width: 420px;
+  display: block;
+  margin: 8px auto;
+}
+.figure-shape {
+  fill: #f6e3c6;
+  stroke: #8a5a2b;
+  stroke-width: 2;
+}
+.figure-line {
+  fill: none;
+  stroke: #8a5a2b;
+}
+.figure-dashed {
+  stroke: #8a5a2b;
+  stroke-dasharray: 5 4;
+}
+.figure-label,
+.figure-area {
+  font-size: 14px;
+  fill: var(--fg);
+}
+.prompt {
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+.answer-form input {
+  font-size: 1.2rem;
+  width: 8em;
+  padding: 6px;
+  margin: 0 6px;
+}
+.invalid,
+.feedback.wrong {
+  color: var(--bad);
+}
+.feedback.correct,
+.solved {
+  color: var(--ok);
+  font-weight: bold;
+}
+.dialog {
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 12px;
+  border-radius: 8px;
+}
+.explanation {
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+}
