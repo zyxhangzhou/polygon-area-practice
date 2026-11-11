@@ -35,7 +35,7 @@
 - [x] 6.4 只沿用格式合法的 `x-request-id`；验证集成测试：日志 `reqId` 与响应头一致；超长或非法字符的值被替换
 - [x] 6.5 配置校验收紧：`PORT` 只接受纯数字，`DATABASE_URL` 必须能被解析为 URL，`WEB_DIST_DIR` 转为绝对路径；`npm start` 设置 `NODE_ENV=production`；验证单元测试覆盖 `PORT=1e3`、相对 `WEB_DIST_DIR`
 - [x] 6.6 README 与 `.env.example`：改正 `TEST_DATABASE_URL` 的设置方式（在 shell 中 export，测试不读 `.env`）；配置表补 `NODE_ENV`、`WEB_DIST_DIR`；常见故障补"旧数据卷没有 `polygon_test`"
-- [ ] 6.7 CI 新增 `docker build .` job，触发条件改为推送 `main` 与 pull request；验证 PR 上两个 job 都通过
+- [x] 6.7 CI 新增 `docker build .` job，触发条件改为推送 `main` 与 pull request；验证 PR 上两个 job 都通过
 
 ## Workflow follow-up
 
