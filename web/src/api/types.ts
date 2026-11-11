@@ -7,6 +7,7 @@ import type {
   getExplanation,
   getQuestion,
   getSummary,
+  listLearnerSessions,
   recordEvent,
   skipQuestion,
   submitAttempt,
@@ -27,5 +28,6 @@ export type SkipResponse = Body<typeof skipQuestion>;
 export type EventResponse = Body<typeof recordEvent>;
 export type CompleteResponse = Data<typeof completeSession>;
 export type SummaryResponse = Data<typeof getSummary>;
+export type HistoryResponse = Data<typeof listLearnerSessions>;
 export type QuestionStatus = SessionView['questions'][number]['status'];
 export type LearnerResponse = { learnerId: string };

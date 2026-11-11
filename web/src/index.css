@@ -143,3 +143,75 @@ button.link {
   border-top: 1px solid var(--line);
   margin-top: 12px;
 }
+.encouragement {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.stat {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px 16px;
+  display: grid;
+}
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: var(--primary);
+}
+.stat-label,
+.excerpt,
+.empty {
+  color: var(--muted);
+}
+.question-list {
+  list-style: none;
+  padding: 0;
+}
+.question-item {
+  border-bottom: 1px solid var(--line);
+  padding: 6px 0;
+}
+.question-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.reason {
+  font-size: 0.85rem;
+  color: var(--bad);
+  border: 1px solid var(--bad);
+  border-radius: 999px;
+  padding: 0 8px;
+}
+.review {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.history-list {
+  padding-left: 0;
+  list-style: none;
+}
+.history-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding: 8px 0;
+}
+.history-title {
+  font-weight: bold;
+}
+.session-date {
+  color: var(--muted);
+}

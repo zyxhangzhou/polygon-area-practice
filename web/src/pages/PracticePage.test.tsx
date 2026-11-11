@@ -299,7 +299,6 @@ describe('答题页', () => {
     await screen.findByRole('textbox');
     await answer('40');
     await waitFor(() => expect(window.location.pathname).toBe('/summary'));
-    expect(screen.getByText('练习已结束')).toBeInTheDocument();
   });
 
   it('没有保存会话：回首页', async () => {

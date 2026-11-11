@@ -6,7 +6,13 @@ import { storage } from './storage';
 describe('parseRoute', () => {
   it.each([
     ['/', { page: 'home' }],
-    ['/summary', { page: 'summary' }],
+    ['/summary', { page: 'summary', sessionId: null }],
+    [
+      '/summary/5D37A5E3-4AA4-4DC0-80F8-F344527E75BC',
+      { page: 'summary', sessionId: '5d37a5e3-4aa4-4dc0-80f8-f344527e75bc' },
+    ],
+    ['/summary/nope', { page: 'not-found' }],
+    ['/history', { page: 'history' }],
     ['/practice', { page: 'practice', qid: null }],
     ['/practice/4', { page: 'practice', qid: 4 }],
     ['/practice/4/', { page: 'practice', qid: 4 }],

@@ -68,6 +68,14 @@ describe('首页', () => {
     expect(storage.getSessionId()).toBeNull();
   });
 
+  it('其他拒绝（如请求过多）：不清除保存的会话', async () => {
+    storage.setSessionId(SESSION_ID);
+    mockApi().on('GET', /\/api\/sessions\//, apiError(429, 'RATE_LIMITED'));
+    renderApp();
+    expect(await screen.findByText('暂时连不上服务器，请稍后再试')).toBeInTheDocument();
+    expect(storage.getSessionId()).toBe(SESSION_ID);
+  });
+
   it('保存的学生已失效：开始练习时重新创建学生', async () => {
     storage.setLearnerId('stale');
     const api = mockApi()
