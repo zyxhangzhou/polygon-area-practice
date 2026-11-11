@@ -130,3 +130,4 @@
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · PR #3 子代理评审，修复 5 个问题与 3 项取舍（11/11 任务，grading 测试 118 个）
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · C squash merge 为 57ad7f5；OpenSpec 归档为 `2026-11-11-grading-core`（在 D 分支上提交）
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · D 开始：分支 `change/practice-session-api`
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · D 的 OpenSpec 四个 artifact 已生成并通过 strict 校验，等待用户评审
