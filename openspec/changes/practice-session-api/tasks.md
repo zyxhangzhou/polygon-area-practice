@@ -28,7 +28,7 @@
 ## 6. 端到端场景与文档
 
 - [x] 6.1 `test/api-flow.test.ts` 覆盖大纲 §6 的 9 个场景（正常流程做完 12 题后总结数字正确等），与上面重复的场景可以直接引用；验证全部通过
-- [ ] 6.2 README 增加接口列表与错误码表；计划 Follow-ups 中 D 的条目标记完成；`npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
+- [x] 6.2 README 增加接口列表与错误码表；计划 Follow-ups 中 D 的条目标记完成；`npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
 
 ## Workflow follow-up
 
