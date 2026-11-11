@@ -1,5 +1,7 @@
 import { buildApp } from './app.js';
 import { ConfigError, loadConfig } from './config.js';
+import { prepareDatabase } from './db/prepare.js';
+import { describeError } from './errors.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
@@ -17,6 +19,20 @@ async function main() {
   }
 
   const app = await buildApp(config);
+
+  // 先迁移、写入题库，再对外服务；失败直接退出，不带着残缺的表结构运行
+  try {
+    await prepareDatabase(config.databaseUrl, app.log);
+  } catch (err) {
+    app.log.error({ err }, 'database preparation failed');
+    const target = new URL(config.databaseUrl);
+    console.error(
+      `数据库准备失败（迁移或写入题库）：${describeError(err)}\n` +
+        `  连接目标：${target.hostname}:${target.port || 5432}${target.pathname}`,
+    );
+    await app.close().catch(() => {});
+    process.exit(1);
+  }
 
   let shuttingDown = false;
   const shutdown = async (signal: string) => {

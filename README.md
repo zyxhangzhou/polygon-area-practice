@@ -49,6 +49,22 @@ TEST_DATABASE_URL=postgres://postgres:postgres@localhost:<端口>/polygon_test n
 
 其他检查：`npm run lint`、`npm run format:check`、`npm run typecheck`、`npm run build`。CI（GitHub Actions）会依次执行这些检查和测试。
 
+### 数据库迁移与题库
+
+服务**启动时自动**执行迁移、写入题库（可重复执行；题库按题目 ID 更新为代码中的内容），然后才开始监听端口。任一步失败，进程输出原因并退出。
+
+| 命令 | 作用 |
+|---|---|
+| `npm run db:generate -w server` | 修改 `server/src/db/schema.ts` 后生成新的迁移 SQL（`server/drizzle/`，需提交） |
+| `npm run db:migrate -w server` | 只执行迁移（读取根目录 `.env` 的 `DATABASE_URL`） |
+| `npm run db:seed -w server` | 只写入题库，题库内容在 `server/src/content/questions.ts` |
+
+在 Docker 运行镜像中（没有 tsx）手动执行：`docker compose exec app node dist/db/cli.js migrate`（或 `seed`）。
+
+多个实例同时启动时，迁移由数据库锁串行执行；等锁超过 30 秒按失败退出，并提示可能有另一个实例正在迁移。
+
+测试开始前会**重建测试库**（`TEST_DATABASE_URL` 的库名必须以 `_test` 结尾，否则拒绝执行），再迁移并写入题库；测试文件串行执行。
+
 ## 配置
 
 仓库中**只有一个** `.env`，放在根目录，由 `.env.example` 复制而来，不提交到 Git。各环境的取值方式：
@@ -78,6 +94,7 @@ TEST_DATABASE_URL=postgres://postgres:postgres@localhost:<端口>/polygon_test n
 |---|---|
 | 测试或开发时连接数据库超时 | 先执行 `docker port polygon-area-practice-db-1`，若没有输出，说明宿主端口没绑上（被其他程序占用）。在 `.env` 中修改 `DB_PORT` 与 `DATABASE_URL` 的端口；运行测试时在 shell 中设置 `TEST_DATABASE_URL`（见"运行测试"）。数据库宿主端口默认就用 55432 而不是 5432，正是为了避开本机已安装的 Postgres |
 | `npm run dev` 报 `Port 5173 is already in use` | 在 `.env` 中修改 `WEB_DEV_PORT`。WSL（mirrored 网络模式）下 Windows 可能保留了 5173 附近的端口段，可改用 `4173` |
+| 启动即退出，提示"数据库准备失败" | 输出中有原因与连接目标（不含密码）。`timeout expired` / `ECONNREFUSED`：数据库没启动或端口不对，检查 `docker compose ps`；`28P01`：用户名或密码错误；迁移 SQL 报错：检查 `server/drizzle/` 是否完整 |
 | 启动即退出，提示"配置错误" | 按提示补齐环境变量，参考 `.env.example` |
 | 测试报 `database "polygon_test" does not exist` | 数据卷是在加入建库脚本之前创建的（`docker/initdb/` 只在数据卷首次创建时执行）。执行 `docker compose down -v` 删除旧数据卷后重新 `docker compose up -d db`（会清空本地数据） |
 | `/api/health` 返回 503 | 数据库不可达。检查 `docker compose ps` 中 `db` 是否 healthy，查看 `docker compose logs db` |

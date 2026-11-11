@@ -79,4 +79,11 @@ describe('启动配置校验（真实进程）', () => {
     expect(r.status).not.toBeNull();
     expect(r.stderr).toContain('PORT');
   });
+
+  it('数据库不可达：非零退出，输出说明数据库准备失败', () => {
+    const r = runEntry({ DATABASE_URL: 'postgres://u:p@127.0.0.1:1/db', LOG_LEVEL: 'silent' });
+    expect(r.status).not.toBe(0);
+    expect(r.status).not.toBeNull();
+    expect(r.stderr).toContain('数据库准备失败');
+  });
 });

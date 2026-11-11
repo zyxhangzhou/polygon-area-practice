@@ -16,3 +16,8 @@ export function buildTestApp(overrides: Partial<AppOptions> = {}) {
     ...overrides,
   });
 }
+
+/** 清空练习数据（学生、会话及其级联记录），保留题库 */
+export async function resetPracticeData(pool: { query: (sql: string) => Promise<unknown> }) {
+  await pool.query('TRUNCATE learners CASCADE');
+}

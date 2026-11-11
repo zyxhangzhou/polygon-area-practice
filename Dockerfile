@@ -16,6 +16,8 @@ COPY server/package.json server/
 COPY web/package.json web/
 RUN npm ci --omit=dev -w server --include-workspace-root=false && npm cache clean --force
 COPY --from=build /app/server/dist server/dist
+# 迁移 SQL：启动时由 drizzle migrator 执行（见 server/src/db/prepare.ts）
+COPY --from=build /app/server/drizzle server/drizzle
 COPY --from=build /app/web/dist web/dist
 ENV WEB_DIST_DIR=/app/web/dist
 USER node

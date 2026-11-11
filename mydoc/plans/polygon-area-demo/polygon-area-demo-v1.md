@@ -22,8 +22,8 @@
 
 | Order | ID | Change | Ref | Depends on | Status |
 |---|---|---|---|---|---|
-| 1 | A | 项目骨架 | `project-scaffold`（分支 `change/project-scaffold`） | — | pr #1 |
-| 2 | B | 数据模型与题库 | `data-model-question-bank` | A | planned |
+| 1 | A | 项目骨架 | `project-scaffold`（已归档 `2026-11-11-project-scaffold`） | — | ✅ merged #1 |
+| 2 | B | 数据模型与题库 | `data-model-question-bank`（分支 `change/data-model-question-bank`） | A | pr #2 |
 | 3 | C | 判题核心 | `grading-core` | B | planned |
 | 4 | D | 练习会话 API | `practice-session-api` | C | planned |
 | 5 | E | 答题主流程前端 | `practice-ui` | D | planned |
@@ -103,7 +103,12 @@
 
 ## Follow-ups
 
-- 2026-11-11 · fab477d6 · PR #1 评审发现：测试文件并行执行、共用 `polygon_test` 库。A 的测试不写数据，暂无影响；**B 开始写表时**要一并设计测试隔离（如 `fileParallelism: false` + 每个文件清表，或 globalSetup 统一迁移）。
+- ~~2026-11-11 · fab477d6 · PR #1 评审发现：测试文件并行执行、共用 `polygon_test` 库。A 的测试不写数据，暂无影响；**B 开始写表时**要一并设计测试隔离（如 `fileParallelism: false` + 每个文件清表，或 globalSetup 统一迁移）。~~ → 已在 B（PR #2）完成：globalSetup 重建 `*_test` 库 + 串行 + `resetPracticeData`。
+
+- 2026-11-11 · fab477d6 · PR #2 子代理评审，留给后续 change：
+  - **C**：作答字段是 `numeric(10,2)`，超过 8 位整数会溢出（报 22003，变成 500）。输入校验要限制长度或上限，并拒绝超过 2 位小数（否则会被静默舍入）。
+  - **D**：两个"开始练习"请求并发时，第二个会撞上部分唯一索引（23505），要捕获后返回已有会话。作答、跳过、学习事件都要先锁住会话行（`FOR UPDATE`）再写入，`seq` 才能代表会话内的实际顺序。前端补报的学习事件，服务端记录的是到达时间。
+  - **D/F**：判断"答对前是否打开过解析""最近一次操作是不是跳过"时用 `seq`，不用 `created_at`。
 
 ## Open questions
 
@@ -114,3 +119,6 @@
 - 2026-11-10 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · v1 写入并确认
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · A 开始：OpenSpec change `project-scaffold` 四个 artifact 已生成并通过 strict 校验；Dockerfile 归入 A（G 复用）
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · A 实现完成（12/12 任务，18 个测试，CI 通过），开 PR #1
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · PR #1 子代理评审，修复 3 个问题并补测试（19/19 任务，34 个测试）；squash merge 为 c26e646；OpenSpec 归档为 `2026-11-11-project-scaffold`
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · B 开始：分支 `change/data-model-question-bank`
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · B 实现完成（14/14 任务，73 个测试，CI 两个 job 通过），开 PR #2；测试库隔离（Follow-up）已在 B 中完成
