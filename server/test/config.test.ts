@@ -44,6 +44,25 @@ describe('loadConfig', () => {
       loadConfig({ DATABASE_URL: 'postgres://u:p@localhost:5432/db', PORT: 'abc' }),
     ).toThrow(/PORT/);
   });
+
+  it.each(['1e3', ' 80 ', '', '0', '70000', '3000.5'])('PORT=%j 被拒绝', (port) => {
+    expect(() =>
+      loadConfig({ DATABASE_URL: 'postgres://u:p@localhost:5432/db', PORT: port }),
+    ).toThrow(/PORT/);
+  });
+
+  it('DATABASE_URL 只有协议头时被拒绝', () => {
+    expect(() => loadConfig({ DATABASE_URL: 'postgres://' })).toThrow(/DATABASE_URL/);
+  });
+
+  it('相对路径的 WEB_DIST_DIR 转为绝对路径', () => {
+    const c = loadConfig({
+      DATABASE_URL: 'postgres://u:p@localhost:5432/db',
+      NODE_ENV: 'production',
+      WEB_DIST_DIR: '../web/dist',
+    });
+    expect(c.webDistDir).toBe(path.resolve('../web/dist'));
+  });
 });
 
 describe('启动配置校验（真实进程）', () => {

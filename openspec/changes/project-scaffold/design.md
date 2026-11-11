@@ -62,6 +62,8 @@
 ### D4. 数据库访问：`pg.Pool` + `drizzle-orm/node-postgres`
 - 本 change 只建立连接与 Drizzle 实例，schema 为空；B 再加表与 drizzle-kit 迁移。
 - 健康检查执行 `select 1`，并用 `Promise.race` 加 2 秒超时；连接池设置 `connectionTimeoutMillis: 2000`，避免数据库挂起时健康检查一直等待。
+- 连接池另设 `query_timeout: 2000` 与 `keepAlive: true`。**评审发现**：只有 `Promise.race` 时，超时的查询仍占着连接；数据库卡住期间连接被逐个占满，恢复后健康检查仍一直 503，`app.close()` 也无法结束。设了查询超时后，pg 会让该查询报错，连接池随即销毁这条连接，恢复后自动重建。
+- 应用把 `pool` 也挂到实例上（`app.pool`），健康检查与后续路由用同一种方式取连接池。
 
 ### D5. 单服务托管前端
 - 生产模式下 `@fastify/static` 托管 `web/dist`（视频等后续静态资源也走这里）。
@@ -77,6 +79,17 @@
 ### D6. 请求 ID
 - Fastify `genReqId`：优先取请求头 `x-request-id`，否则生成 UUID；`onSend` 钩子写回响应头。日志自动带 `reqId`。
 
+- 只沿用格式合法的 `x-request-id`（1–64 个字母、数字、`.`、`_`、`-`），否则生成新 UUID，避免超长或含控制字符的值进入日志与响应头。
+
+### D6a. 统一错误处理
+- `setErrorHandler` 把所有错误转为 `{error:{code,message}}`：
+  - 4xx：沿用框架给的状态码；请求体解析失败等 → `BAD_REQUEST`，schema 校验失败 → `VALIDATION_ERROR`；`message` 用框架的错误说明。
+  - 5xx：一律 `INTERNAL_ERROR` + "服务器内部错误"，完整异常写日志（带 `reqId`），不返回给客户端。
+- 业务错误（如 D 的 409 `SESSION_COMPLETED`）由路由直接用 `errorBody` 返回，不经过这里。
+
+### D6b. 进程关闭
+- 收到 SIGINT / SIGTERM 后调用 `app.close()`；重复的信号被忽略；10 秒内未关闭完则强制以退出码 1 退出，避免卡住的连接让进程退不出去。
+
 ### D7. 本地运行与测试数据库
 - `docker-compose.yml`：
   - `db`：`postgres:17`，命名卷持久化，`healthcheck` 用 `pg_isready`；`docker/initdb/` 脚本额外创建测试库 `polygon_test`。
@@ -86,6 +99,8 @@
 
 ### D8. CI：GitHub Actions
 - `ubuntu-latest`，Node 24，`services.postgres`（postgres:17）；步骤：`npm ci` → `npm run lint` → `npm run format:check` → `npm run typecheck` → `npm run build` → `npm test`。
+- 另一个 job 执行 `docker build .`：G 直接用这个 Dockerfile 部署，Dockerfile 出错要在 PR 阶段发现，而不是上线时。
+- 触发条件：推送到 `main` 与 pull request。其他分支只在开 PR 后运行，避免同一提交跑两次。
 
 ### D9. 最小 ESLint
 - 根目录一份 flat config（`eslint.config.js`），覆盖 `server/` 与 `web/`：
@@ -104,6 +119,8 @@
 - [最小 ESLint 规则覆盖有限，不做类型感知检查] → 由 `tsc --strict` 补足类型层面；需要时再逐条加规则。
 - [前端路由若出现带点的路径段会被当成静态资源返回 404] → 约定路由不使用带点的段，并由 app-hosting 的测试覆盖。
 - [测试与开发共用一个 Postgres 实例] → 使用独立的 `polygon_test` 库，测试不碰开发数据。
+- [测试文件并行执行、共用一个测试库] → 本 change 的测试不写数据，暂无影响。B 开始写表后会互相干扰，届时与清库策略一起设计（记入计划的 Follow-ups）。
+- [`initdb` 脚本只在数据卷首次创建时执行] → 旧数据卷中没有 `polygon_test`；README 常见故障说明用 `docker compose down -v` 重建。
 
 ## Migration Plan
 

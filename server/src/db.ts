@@ -5,6 +5,10 @@ export function createDb(databaseUrl: string) {
   const pool = new pg.Pool({
     connectionString: databaseUrl,
     connectionTimeoutMillis: 2000,
+    // 查询超时后 pg 让该查询报错，连接池随即销毁这条连接；
+    // 否则数据库卡住时超时的查询会一直占着连接，恢复后连接池仍是满的
+    query_timeout: 2000,
+    keepAlive: true,
     max: 10,
   });
   // 空闲连接出错（如数据库重启）时不让进程崩溃；下次查询会重新建连

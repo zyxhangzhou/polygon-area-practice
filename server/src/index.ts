@@ -1,6 +1,8 @@
 import { buildApp } from './app.js';
 import { ConfigError, loadConfig } from './config.js';
 
+const SHUTDOWN_TIMEOUT_MS = 10_000;
+
 async function main() {
   let config;
   try {
@@ -16,10 +18,23 @@ async function main() {
 
   const app = await buildApp(config);
 
+  let shuttingDown = false;
   const shutdown = async (signal: string) => {
+    if (shuttingDown) return; // 重复的信号忽略
+    shuttingDown = true;
     app.log.info({ signal }, 'shutting down');
-    await app.close();
-    process.exit(0);
+    // 兜底：连接卡住等原因导致 10 秒内关不完时强制退出
+    setTimeout(() => {
+      app.log.error('shutdown timed out, forcing exit');
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS).unref();
+    try {
+      await app.close();
+      process.exit(0);
+    } catch (err) {
+      app.log.error({ err }, 'error during shutdown');
+      process.exit(1);
+    }
   };
   process.on('SIGINT', () => void shutdown('SIGINT'));
   process.on('SIGTERM', () => void shutdown('SIGTERM'));

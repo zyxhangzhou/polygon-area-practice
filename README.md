@@ -41,6 +41,12 @@ docker compose up -d db       # 测试需要真实 Postgres（使用独立的 po
 npm test
 ```
 
+测试**不读 `.env`**。数据库端口不是默认的 55432 时，在 shell 中指定：
+
+```bash
+TEST_DATABASE_URL=postgres://postgres:postgres@localhost:<端口>/polygon_test npm test
+```
+
 其他检查：`npm run lint`、`npm run format:check`、`npm run typecheck`、`npm run build`。CI（GitHub Actions）会依次执行这些检查和测试。
 
 ## 配置
@@ -59,18 +65,21 @@ npm test
 | `DATABASE_URL` | 无（必填） | 后端连接的数据库；缺失时进程启动即退出并提示 |
 | `PORT` | `3000` | 后端监听端口 |
 | `LOG_LEVEL` | `info` | `fatal` / `error` / `warn` / `info` / `debug` / `trace` |
+| `NODE_ENV` | `development` | `production` 时后端同时托管前端构建产物（`npm start` 与 Docker 已自动设置） |
+| `WEB_DIST_DIR` | `web/dist` | 生产模式下托管的前端目录；相对路径按启动目录解析 |
 | `WEB_DEV_PORT` | `5173` | 前端开发服务器端口 |
 | `DB_PORT` | `55432` | Compose 中 Postgres 映射到宿主机的端口 |
 | `APP_PORT` | `3000` | Compose 中应用映射到宿主机的端口 |
-| `TEST_DATABASE_URL` | 见上 | 测试数据库 |
+| `TEST_DATABASE_URL` | 见上 | 测试数据库；只从 shell 读取，写在 `.env` 中无效 |
 
 ## 常见故障
 
 | 现象 | 原因与处理 |
 |---|---|
-| 测试或开发时连接数据库超时 | 先执行 `docker port polygon-area-practice-db-1`，若没有输出，说明宿主端口没绑上（被其他程序占用）。在 `.env` 中修改 `DB_PORT`，并同步修改 `DATABASE_URL` / `TEST_DATABASE_URL` 的端口。数据库宿主端口默认就用 55432 而不是 5432，正是为了避开本机已安装的 Postgres |
+| 测试或开发时连接数据库超时 | 先执行 `docker port polygon-area-practice-db-1`，若没有输出，说明宿主端口没绑上（被其他程序占用）。在 `.env` 中修改 `DB_PORT` 与 `DATABASE_URL` 的端口；运行测试时在 shell 中设置 `TEST_DATABASE_URL`（见"运行测试"）。数据库宿主端口默认就用 55432 而不是 5432，正是为了避开本机已安装的 Postgres |
 | `npm run dev` 报 `Port 5173 is already in use` | 在 `.env` 中修改 `WEB_DEV_PORT`。WSL（mirrored 网络模式）下 Windows 可能保留了 5173 附近的端口段，可改用 `4173` |
 | 启动即退出，提示"配置错误" | 按提示补齐环境变量，参考 `.env.example` |
+| 测试报 `database "polygon_test" does not exist` | 数据卷是在加入建库脚本之前创建的（`docker/initdb/` 只在数据卷首次创建时执行）。执行 `docker compose down -v` 删除旧数据卷后重新 `docker compose up -d db`（会清空本地数据） |
 | `/api/health` 返回 503 | 数据库不可达。检查 `docker compose ps` 中 `db` 是否 healthy，查看 `docker compose logs db` |
 
 ## 日志

@@ -8,16 +8,22 @@ const EnvSchema = z.object({
   DATABASE_URL: z
     .string({ error: 'DATABASE_URL 未设置' })
     .min(1, 'DATABASE_URL 不能为空')
-    .refine((v) => /^postgres(ql)?:\/\//.test(v), 'DATABASE_URL 必须以 postgres:// 开头'),
-  PORT: z.coerce
-    .number({ error: 'PORT 必须是数字' })
-    .int('PORT 必须是整数')
-    .min(1)
-    .max(65535)
+    .refine((v) => /^postgres(ql)?:\/\//.test(v), 'DATABASE_URL 必须以 postgres:// 开头')
+    .refine((v) => URL.canParse(v) && new URL(v).hostname !== '', 'DATABASE_URL 不是合法的连接串'),
+  PORT: z
+    .string()
+    .regex(/^\d+$/, 'PORT 必须是整数')
+    .transform(Number)
+    .pipe(z.number().min(1, 'PORT 必须在 1–65535 之间').max(65535, 'PORT 必须在 1–65535 之间'))
     .default(3000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  WEB_DIST_DIR: z.string().min(1).default(defaultWebDist),
+  // 相对路径按进程工作目录转为绝对路径（@fastify/static 只接受绝对路径）
+  WEB_DIST_DIR: z
+    .string()
+    .min(1)
+    .default(defaultWebDist)
+    .transform((v) => path.resolve(v)),
 });
 
 export type Config = {

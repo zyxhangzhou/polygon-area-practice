@@ -103,7 +103,7 @@
 
 ## Follow-ups
 
-（暂无）
+- 2026-11-11 · fab477d6 · PR #1 评审发现：测试文件并行执行、共用 `polygon_test` 库。A 的测试不写数据，暂无影响；**B 开始写表时**要一并设计测试隔离（如 `fileParallelism: false` + 每个文件清表，或 globalSetup 统一迁移）。
 
 ## Open questions
 
