@@ -2,15 +2,15 @@
 
 ## 1. 限流
 
-- [ ] 1.1 `TRUST_PROXY_HOPS` 配置与 `trustProxy`（D3）；验证：配置测试覆盖默认值 0、合法整数、非法值退出并指明 `TRUST_PROXY_HOPS`
-- [ ] 1.2 注册 `@fastify/rate-limit`：全局上限、健康检查与非 API 请求放行、创建学生的路由级上限、`RATE_LIMITED` 统一错误格式（D2）；验证：`server/test/rate-limit.test.ts` 覆盖 request-rate-limits 的全部场景，包括被限的作答没有写库、`Retry-After` 存在、伪造 `X-Forwarded-For` 在两种配置下的计数
-- [ ] 1.3 前端 `RATE_LIMITED`（D4）；验证：store 测试覆盖作答被限后保留为待重试、用同一个键重试成功、学习事件被限时直接放弃
+- [x] 1.1 `TRUST_PROXY_HOPS` 配置与 `trustProxy`（D3）；验证：配置测试覆盖默认值 0、合法整数、非法值退出并指明 `TRUST_PROXY_HOPS`
+- [x] 1.2 注册 `@fastify/rate-limit`：全局上限、健康检查与非 API 请求放行、创建学生的路由级上限、`RATE_LIMITED` 统一错误格式（D2）；验证：`server/test/rate-limit.test.ts` 覆盖 request-rate-limits 的全部场景，包括被限的作答没有写库、`Retry-After` 存在、伪造 `X-Forwarded-For` 在两种配置下的计数
+- [x] 1.3 前端 `RATE_LIMITED`（D4）；验证：store 测试覆盖作答被限后保留为待重试、用同一个键重试成功、学习事件被限时直接放弃
 
 ## 2. 上线配置与脚本
 
-- [ ] 2.1 `render.yaml`（D1）；验证：字段与 Render Blueprint 文档一致，仓库中没有连接串或密码
-- [ ] 2.2 `scripts/smoke.mjs` 与 `npm run smoke`（D5）；验证：对本地 Docker Compose 运行 6 步通过；对不可达地址运行时退出码非零并指出第 1 步
-- [ ] 2.3 `docs/deploy.md`，README 增加链接（D7）
+- [x] 2.1 `render.yaml`（D1）；验证：字段与 Render Blueprint 文档一致，仓库中没有连接串或密码
+- [x] 2.2 `scripts/smoke.mjs` 与 `npm run smoke`（D5）；验证：对本地 Docker Compose 运行 6 步通过；对不可达地址运行时退出码非零并指出第 1 步
+- [x] 2.3 `docs/deploy.md`，README 增加链接（D7）
 
 ## 3. 上线与验证
 

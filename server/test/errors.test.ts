@@ -23,7 +23,14 @@ describe('统一错误格式与请求 ID 日志', () => {
 
   beforeAll(async () => {
     app = await buildApp(
-      { databaseUrl: TEST_DATABASE_URL, logLevel: 'info', nodeEnv: 'test', webDistDir: undefined },
+      {
+        databaseUrl: TEST_DATABASE_URL,
+        logLevel: 'info',
+        nodeEnv: 'test',
+        webDistDir: undefined,
+        trustProxyHops: 0,
+        rateLimit: null,
+      },
       { logStream: logs.stream },
     );
     // 仅测试用的路由

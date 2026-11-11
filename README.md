@@ -3,6 +3,8 @@
 小学五年级"多边形面积计算"全栈练习网页（面试实践题·选题一）。
 
 > 🚧 开发中。项目大纲见 [docs/project-outline.md](docs/project-outline.md)，题面见 [docs/assignment/](docs/assignment/assignment.md)，拆分计划见 [mydoc/plans/polygon-area-demo/](mydoc/plans/polygon-area-demo/README.md)。
+>
+> 线上地址：（首次部署后填写）。部署、看日志、回滚与已知限制见 [docs/deploy.md](docs/deploy.md)。
 
 ## 快速开始
 
@@ -108,6 +110,7 @@ TEST_DATABASE_URL=postgres://postgres:postgres@localhost:<端口>/polygon_test n
 | 409 | `IDEMPOTENCY_CONFLICT` | 同一个幂等键带了不同的内容 |
 | 409 | `NOT_FINISHED` | 还有题没完成，结束时需要 `endedEarly: true` |
 | 413 | `BAD_REQUEST` | 请求体超过 16 KB |
+| 429 | `RATE_LIMITED` | 请求太频繁：`/api/` 下每个 IP 每分钟最多 300 次，创建学生每小时最多 60 次（健康检查不限）。请求没有被处理，`Retry-After` 秒后可以用同一个幂等键重试 |
 | 500 | `INTERNAL_ERROR` | 服务器内部错误（包括数据库等锁超过 2 秒）；写请求可以用同一个幂等键安全重试 |
 
 ## 配置
@@ -127,6 +130,7 @@ TEST_DATABASE_URL=postgres://postgres:postgres@localhost:<端口>/polygon_test n
 | `PORT` | `3000` | 后端监听端口 |
 | `LOG_LEVEL` | `info` | `fatal` / `error` / `warn` / `info` / `debug` / `trace` |
 | `NODE_ENV` | `development` | `production` 时后端同时托管前端构建产物（`npm start` 与 Docker 已自动设置） |
+| `TRUST_PROXY_HOPS` | `0` | 服务前面可信的反向代理层数，用于从 `X-Forwarded-For` 取客户端 IP（限流按它计数）；`0` 表示使用连接地址。线上取值见 [docs/deploy.md](docs/deploy.md) |
 | `WEB_DIST_DIR` | `web/dist` | 生产模式下托管的前端目录；相对路径按启动目录解析 |
 | `WEB_DEV_PORT` | `5173` | 前端开发服务器端口 |
 | `DB_PORT` | `55432` | Compose 中 Postgres 映射到宿主机的端口 |
@@ -150,3 +154,4 @@ TEST_DATABASE_URL=postgres://postgres:postgres@localhost:<端口>/polygon_test n
 
 - 本地开发：终端中查看（pino-pretty 格式化）。
 - Docker：`docker compose logs -f app`（JSON 格式）。
+- 线上：Render 控制台的 Logs，见 [docs/deploy.md](docs/deploy.md)。

@@ -224,6 +224,55 @@ describe('错误码处理', () => {
     expect(store.getState().notice).toBe('还有题没有完成');
   });
 
+  it('RATE_LIMITED：作答保留为待重试，显示后端提示；"再提交一次"用同一个键', async () => {
+    const solved = sessionView({ 1: 'solved' });
+    const limited: ApiResult<unknown> = {
+      kind: 'rejected',
+      status: 429,
+      code: 'RATE_LIMITED',
+      message: '操作太频繁了，请等一会儿再试',
+    };
+    const { store, calls } = setup(
+      limited,
+      ok(attemptResponse({ questionId: 1, correct: true }, solved)),
+    );
+    store.submitAnswer(1, '40');
+    await settle();
+    expect(store.getState().pendingRetry).toMatchObject({ type: 'attempt', key: 'key-1' });
+    expect(store.getState().notice).toBe('操作太频繁了，请等一会儿再试');
+    expect(store.getState().feedback).toBeNull();
+
+    store.retry();
+    await settle();
+    expect(calls.map((c) => c.body)).toEqual([
+      { questionId: 1, clientAttemptId: 'key-1', answer: '40' },
+      { questionId: 1, clientAttemptId: 'key-1', answer: '40' },
+    ]);
+    expect(store.getState().pendingRetry).toBeNull();
+    expect(store.getState().feedback).toMatchObject({ kind: 'result', result: { correct: true } });
+  });
+
+  it('RATE_LIMITED：跳过同样保留为待重试', async () => {
+    const { store } = setup(rejected('RATE_LIMITED', '太频繁'));
+    store.skip(1);
+    await settle();
+    expect(store.getState().pendingRetry).toMatchObject({ type: 'skip', key: 'key-1' });
+    expect(store.getState().notice).toBe('太频繁');
+  });
+
+  it('RATE_LIMITED：学习事件直接放弃，不提示，后面的作答照常发送', async () => {
+    const { store, calls } = setup(
+      rejected('RATE_LIMITED'),
+      ok(attemptResponse({ questionId: 1, correct: false }, sessionView())),
+    );
+    store.reportTextOpened(1);
+    store.submitAnswer(1, '9');
+    await settle();
+    expect(store.getState().pendingRetry).toBeNull();
+    expect(store.getState().notice).toBeNull();
+    expect(calls).toHaveLength(2);
+  });
+
   it('学习事件被拒绝：放弃，不显示提示', async () => {
     const { store } = setup(rejected('IDEMPOTENCY_CONFLICT'));
     store.reportTextOpened(1);
