@@ -138,3 +138,4 @@
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · D 实现完成，开 PR #4，CI 两个 job 通过；等待用户评审合并
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · D squash merge 为 7e19c3a；OpenSpec 归档为 `2026-11-11-practice-session-api`（在 E 分支上提交）
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · E 开始：分支 `change/practice-ui`
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · E 的 OpenSpec 四个 artifact 已生成并通过 strict 校验，等待用户评审（含：重放显示规则修订、结束练习归 E）
