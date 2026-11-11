@@ -35,7 +35,7 @@ function setup(...results: ApiResult<unknown>[]) {
     request: fn as never,
     navigate,
     newKey: () => `key-${++n}`,
-    eventRetryDelays: [1, 2, 4],
+    eventRetryDelays: [1, 2],
     sleep: () => Promise.resolve(),
   });
   store.useSession(SESSION_ID, sessionView());
@@ -65,10 +65,12 @@ describe('写队列', () => {
     await settle();
     expect(order).toEqual(['events']);
     expect(store.getState().busy).toBe(true);
+    expect(store.getState().waitingForEvent).toBe(true);
     releaseEvent(ok({ replayed: false }, 201));
     await settle();
     expect(order).toEqual(['events', 'attempts']);
     expect(store.getState().busy).toBe(false);
+    expect(store.getState().waitingForEvent).toBe(false);
   });
 
   it('作答结果不确定：停止并等待；"再提交一次"用同一个键和内容', async () => {
@@ -104,10 +106,9 @@ describe('写队列', () => {
     expect(calls).toHaveLength(1);
   });
 
-  it('学习事件：结果不确定时用同一个键重试 3 次，仍失败就放弃并继续', async () => {
+  it('学习事件：结果不确定时用同一个键重试 2 次，仍失败就放弃并继续', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { store, calls } = setup(
-      uncertain,
       uncertain,
       uncertain,
       uncertain,
@@ -120,7 +121,7 @@ describe('写队列', () => {
     const eventKeys = calls
       .filter((c) => c.path.endsWith('/events'))
       .map((c) => (c.body as { clientEventId: string }).clientEventId);
-    expect(eventKeys).toEqual(['key-1', 'key-1', 'key-1', 'key-1']);
+    expect(eventKeys).toEqual(['key-1', 'key-1', 'key-1']);
     expect(calls.at(-1)!.path).toMatch(/attempts$/);
     expect(store.getState().pendingRetry).toBeNull();
     expect(warn).toHaveBeenCalled();
@@ -246,5 +247,28 @@ describe('作答响应的显示规则', () => {
       replayed: true,
     });
     expect(attemptFeedback(1, body)).toMatchObject({ kind: 'result', result: { correct: false } });
+  });
+});
+
+describe('学习事件的等待预算', () => {
+  it('默认：单次超时 3 秒，重试 2 次，间隔 0.5 秒和 1 秒', async () => {
+    const calls: unknown[] = [];
+    const delays: number[] = [];
+    const store = new PracticeStore({
+      request: (async (...args: unknown[]) => {
+        calls.push(args[3]);
+        return uncertain;
+      }) as never,
+      navigate: vi.fn(),
+      sleep: async (ms) => {
+        delays.push(ms);
+      },
+    });
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    store.useSession(SESSION_ID, sessionView({ 1: 'wrong' }));
+    store.reportTextOpened(1);
+    await settle();
+    expect(calls).toEqual([{ timeoutMs: 3000 }, { timeoutMs: 3000 }, { timeoutMs: 3000 }]);
+    expect(delays).toEqual([500, 1000]);
   });
 });

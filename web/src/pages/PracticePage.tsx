@@ -117,8 +117,15 @@ export function PracticePage({ qid }: { qid: number | null }) {
 /** 放在页面层：不管当前显示哪道题，等待重试时都能看到提示和"再提交一次" */
 function RetryPanel() {
   const store = useStore();
-  const { pendingRetry, notice } = usePracticeState();
-  if (!pendingRetry) return null;
+  const { pendingRetry, notice, waitingForEvent } = usePracticeState();
+  if (!pendingRetry) {
+    // 作答排在解析上报后面时立即说明，避免学生以为页面没反应
+    return waitingForEvent ? (
+      <p role="status" className="notice waiting">
+        正在保存解析记录，请稍等，你的答案会紧接着提交
+      </p>
+    ) : null;
+  }
   return (
     <div role="alert" className="notice uncertain">
       <p>{notice}</p>

@@ -249,9 +249,11 @@ describe('答题页', () => {
     await userEvent.type(input(), '40');
     await userEvent.click(screen.getByRole('button', { name: '提交' }));
     expect(api.writes()).toHaveLength(1);
+    expect(screen.getByText(/正在保存解析记录，请稍等/)).toBeInTheDocument();
     releaseEvent();
     expect(await screen.findByText(/改正成功/)).toBeInTheDocument();
     expect(api.writes().map((c) => c.path.split('/').pop())).toEqual(['events', 'attempts']);
+    expect(screen.queryByText(/正在保存解析记录/)).not.toBeInTheDocument();
   });
 
   it('跳过：进入后端返回的当前题', async () => {

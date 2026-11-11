@@ -30,6 +30,8 @@ export interface PracticeState {
   loadFailed: boolean;
   /** 队列中有作答、跳过或结束未完成；提交、跳过、结束按钮禁用 */
   busy: boolean;
+  /** 作答、跳过或结束正排在一条未确认的学习事件后面；页面提示"正在保存解析记录" */
+  waitingForEvent: boolean;
   /** 结果不确定、等待学生"再提交一次"的写操作 */
   pendingRetry: WriteJob | null;
   feedback: Feedback | null;
@@ -45,6 +47,8 @@ export interface StoreDeps {
   newKey?: () => string;
   /** 学习事件结果不确定时的重试间隔（毫秒）；长度即重试次数 */
   eventRetryDelays?: number[];
+  /** 学习事件单次请求的超时（毫秒） */
+  eventTimeoutMs?: number;
   sleep?: (ms: number) => Promise<void>;
 }
 
@@ -53,6 +57,7 @@ const INITIAL: PracticeState = {
   session: null,
   loadFailed: false,
   busy: false,
+  waitingForEvent: false,
   pendingRetry: null,
   feedback: null,
   invalid: null,
@@ -77,13 +82,16 @@ export class PracticeStore {
   private readonly navigate: typeof defaultNavigate;
   private readonly newKey: () => string;
   private readonly eventRetryDelays: number[];
+  private readonly eventTimeoutMs: number;
   private readonly sleep: (ms: number) => Promise<void>;
 
   constructor(deps: StoreDeps = {}) {
     this.request = deps.request ?? defaultRequest;
     this.navigate = deps.navigate ?? defaultNavigate;
     this.newKey = deps.newKey ?? (() => crypto.randomUUID());
-    this.eventRetryDelays = deps.eventRetryDelays ?? [1000, 2000, 4000];
+    // 学习事件不是核心记录：超时短、重试少，最坏约 10.5 秒后放弃（design D4）
+    this.eventRetryDelays = deps.eventRetryDelays ?? [500, 1000];
+    this.eventTimeoutMs = deps.eventTimeoutMs ?? 3000;
     this.sleep = deps.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
   }
 
@@ -99,7 +107,8 @@ export class PracticeStore {
   private set(patch: Partial<PracticeState>) {
     // 学习事件在后台排队，不锁按钮；学生可以照常提交，作答会排在事件后面发送
     const busy = this.queue.some((job) => job.type !== 'event');
-    this.state = { ...this.state, ...patch, busy };
+    const waitingForEvent = this.queue[0]?.type === 'event' && busy;
+    this.state = { ...this.state, ...patch, busy, waitingForEvent };
     this.listeners.forEach((l) => l());
   }
 
@@ -260,11 +269,12 @@ export class PracticeStore {
         return this.request('POST', `${this.base}/complete`, { endedEarly: job.endedEarly });
       case 'event': {
         const body = { questionId: job.questionId, type: job.eventType, clientEventId: job.key };
-        let res = await this.request('POST', `${this.base}/events`, body);
+        const opts = { timeoutMs: this.eventTimeoutMs };
+        let res = await this.request('POST', `${this.base}/events`, body, opts);
         for (const delay of this.eventRetryDelays) {
           if (res.kind !== 'uncertain') break;
           await this.sleep(delay);
-          res = await this.request('POST', `${this.base}/events`, body);
+          res = await this.request('POST', `${this.base}/events`, body, opts);
         }
         return res;
       }
