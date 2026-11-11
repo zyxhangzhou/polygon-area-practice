@@ -87,7 +87,7 @@ type EventRecord = { questionId: number; type: LearningEventType; seq: number };
 
 - 关卡顺序取快照中该关题目的最小 `position`，不依赖 `stages.position`，因为快照是会话创建时冻结的。
 - 不用 `attemptNo` 判断"第 1 次"，而用 `seq` 最小的作答，与"以 `seq` 为准"保持一致；`attemptNo` 由 D 维护，唯一约束兜底。
-- 快照为空、快照内 `questionId` 重复、记录指向快照外的题：抛错。
+- 快照内 `questionId` 重复、记录指向快照外的题：抛错。快照为空时不抛错，比率为 0（见 learning-summary spec）。
 
 ### D6 D 需要遵守的约定
 
