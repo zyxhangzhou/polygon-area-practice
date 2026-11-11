@@ -24,8 +24,8 @@
 |---|---|---|---|---|---|
 | 1 | A | 项目骨架 | `project-scaffold`（已归档 `2026-11-11-project-scaffold`） | — | ✅ merged #1 |
 | 2 | B | 数据模型与题库 | `data-model-question-bank`（已归档 `2026-11-11-data-model-question-bank`） | A | ✅ merged #2 |
-| 3 | C | 判题核心 | `grading-core`（分支 `change/grading-core`） | B | pr #3 |
-| 4 | D | 练习会话 API | `practice-session-api` | C | planned |
+| 3 | C | 判题核心 | `grading-core`（已归档 `2026-11-11-grading-core`） | B | ✅ merged #3 |
+| 4 | D | 练习会话 API | `practice-session-api`（分支 `change/practice-session-api`） | C | in progress |
 | 5 | E | 答题主流程前端 | `practice-ui` | D | planned |
 | 6 | F | 学习总结页 | `summary-ui` | D, E | planned |
 | 7 | G | 首次上线 Render | `deploy-render` | E | planned |
@@ -128,3 +128,5 @@
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · C 的 OpenSpec 四个 artifact 已生成并通过 strict 校验，等待用户评审
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · C 实现完成（7/7 任务，新增 99 个单元测试，共 190 个），开 PR #3
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · PR #3 子代理评审，修复 5 个问题与 3 项取舍（11/11 任务，grading 测试 118 个）
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · C squash merge 为 57ad7f5；OpenSpec 归档为 `2026-11-11-grading-core`（在 D 分支上提交）
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · D 开始：分支 `change/practice-session-api`
