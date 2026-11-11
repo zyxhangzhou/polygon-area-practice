@@ -274,3 +274,24 @@ describe('跳过', () => {
     expect(res.body.result).toMatchObject({ attemptNo: 1, outcome: 'first_try' });
   });
 });
+
+describe('等锁超时', () => {
+  it('会话行被占住超过 2 秒：500；释放后用同一个键重试，只写入一条', async () => {
+    const holder = await app.pool.connect();
+    const key = randomUUID();
+    try {
+      await holder.query('BEGIN');
+      await holder.query('SELECT 1 FROM practice_sessions WHERE id = $1 FOR UPDATE', [c.sessionId]);
+      const timedOut = await c.answer(1, '20', key);
+      expect(timedOut.status).toBe(500);
+      expect(timedOut.body.error.code).toBe('INTERNAL_ERROR');
+    } finally {
+      await holder.query('ROLLBACK');
+      holder.release();
+    }
+    const retry = await c.answer(1, '20', key);
+    expect(retry.status).toBe(201);
+    expect(retry.body.result.attemptNo).toBe(1);
+    expect(await rows('attempts')).toHaveLength(1);
+  });
+});

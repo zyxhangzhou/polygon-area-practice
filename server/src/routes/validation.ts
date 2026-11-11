@@ -19,3 +19,7 @@ export function parse<T>(schema: z.ZodType<T>, value: unknown): T {
   }
   return result.data;
 }
+
+/** Postgres 的 text 与 jsonb 不接受 NUL 字符（写入会报错变成 500），在校验时拒绝 */
+export const NO_NUL = (s: string) => !s.includes('\u0000');
+export const NO_NUL_MESSAGE = '不能包含 NUL 字符';

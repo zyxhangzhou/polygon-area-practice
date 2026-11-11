@@ -145,6 +145,16 @@ describe('POST events', () => {
     expect(notObject.status).toBe(400);
   });
 
+  it('payload 含 NUL 字符：400，不是 500', async () => {
+    await c.wrong(1);
+    for (const payload of [{ s: 'a\u0000' }, { ['k\u0000']: 1 }]) {
+      const res = await c.event(1, 'video_started', randomUUID(), payload);
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    }
+    expect(await eventCount()).toBe(0);
+  });
+
   it('请求体超过 16 KB：413', async () => {
     await c.wrong(1);
     const res = await c.event(1, 'video_completed', randomUUID(), { s: 'x'.repeat(20_000) });

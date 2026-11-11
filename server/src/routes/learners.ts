@@ -1,11 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { createLearner } from '../practice/service.js';
-import { BODY_LIMIT, parse } from './validation.js';
+import { BODY_LIMIT, NO_NUL, NO_NUL_MESSAGE, parse } from './validation.js';
 
 /** 请求体可以省略；昵称可选 */
 const LearnerBody = z
-  .object({ nickname: z.string().trim().min(1).max(20).optional() })
+  .object({ nickname: z.string().trim().min(1).max(20).refine(NO_NUL, NO_NUL_MESSAGE).optional() })
   .optional()
   .default({});
 

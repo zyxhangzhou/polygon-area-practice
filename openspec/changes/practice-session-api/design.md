@@ -39,6 +39,8 @@
 - 不同会话之间互不影响。
 - 写操作先锁住，再在锁内用 `summarize` 计算解锁和是否已答对，所以检查和写入之间状态不会被别的请求改掉。
 - 读接口（会话状态、题目、解析、总结）不加锁。
+- 读接口在 `REPEATABLE READ` 只读事务里执行，一个请求里的几次查询看到同一个快照。
+- 事务用自己的辅助函数 `withTransaction`（`practice/tx.ts`），不用 Drizzle 的 `db.transaction`。原因：查询超过 `query_timeout` 时，pg 只让这次调用报错，服务端的查询仍在等锁，随后的 `ROLLBACK` 也会超时；Drizzle 仍把这条连接放回连接池，下一个请求就会跑在旧事务里，并一直占着行锁。`withTransaction` 遇到业务错误（`AppError`）时照常回滚，遇到其他错误时销毁连接。
 
 备选方案"不加锁，靠唯一约束冲突后重试"：代码更绕，`seq` 也不能保证代表真实顺序。
 
@@ -78,10 +80,11 @@
 - 路径中的会话 ID 不是 UUID 时直接返回 `404 SESSION_NOT_FOUND`，避免把非法 UUID 传给 Postgres，导致 `22P02` 报错，进而变成 `500`。
 - `answer` 限制为最长 200 个字符的字符串；更细的规则（32 个字符等）交给 `gradeAnswer`，由它返回 `INVALID_ANSWER` 和提示。
 - `payload` 序列化后不超过 1 KB；这些接口的请求体上限设为 16 KB。
+- 昵称和 `payload` 不能包含 NUL 字符：Postgres 的 `text` 和 `jsonb` 不接受它，写入会报错变成 `500`。答案里的 NUL 字符由 `gradeAnswer` 判为不合法输入，不会写库。
 
 ### D7 响应结构
 
-会话视图 `SessionView` 用于会话状态，也附在每个写接口的响应里：
+会话视图 `SessionView` 用于会话状态，也附在作答、跳过、结束的响应里：
 
 ```ts
 {
@@ -104,6 +107,18 @@
 }
 ```
 
+各接口的响应：
+
+| 接口 | 响应 |
+|---|---|
+| `POST /learners` | `{ learnerId }` |
+| `POST /sessions`、`GET /sessions/:id`、`POST /complete` | `SessionView` |
+| `POST /attempts` | `{ replayed, alreadySolved, result, session: SessionView }` |
+| `POST /skip` | `{ replayed, alreadySolved, session: SessionView }` |
+| `POST /events` | `{ replayed }`。事件不改变进度，不附会话状态 |
+| `GET /questions/:qid` | `{ questionId, stageId, position, shapeType, prompt, figure, unit, hasVideo, status }` |
+| `GET /explanation` | `{ questionId, steps, tip, videoUrl }` |
+
 总结 `GET /summary`：在 `SessionView` 的基础上，每题再附 `outcome`、`reviewReason`、`facts`、`prompt`、`knowledgePoint`。会话进行中也可以请求，前端按 `session.status` 决定怎么展示。
 
 ### D8 测试
@@ -115,7 +130,7 @@
 ## Risks / Trade-offs
 
 - [会话 ID 即凭证：拿到 ID 的人可以代答] → UUID v4 无法猜测，且只存在学生自己的浏览器里；写入已知限制。加登录不在本题范围内。
-- [锁等待超过 2 秒变成 `500`] → 同一会话的并发只来自同一个学生连点或重试，事务很短；万一超时，前端按"结果不确定"提示重试，幂等键保证不会重复记录。
+- [锁等待超过 2 秒变成 `500`] → 同一会话的并发只来自同一个学生连点或重试，事务很短；万一超时，前端按"结果不确定"提示重试，幂等键保证不会重复记录。超时的连接会被销毁（见 D2），集成测试覆盖了“超时后用同一个键重试只写入一条”。
 - [答案不进快照，题库改了答案会影响进行中的会话] → 答案改动只会是修正错误，此时希望立即生效；已保存的作答对错不会被重算。
 - [每次写入都要读全会话记录并跑 `summarize`] → 每个会话最多 12 题、几十条记录，查询量很小，换来所有数字同一口径。
 

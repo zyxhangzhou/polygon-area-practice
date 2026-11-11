@@ -2,7 +2,14 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { LEARNING_EVENT_TYPES } from '../db/schema.js';
 import { AppError } from '../errors.js';
-import { BODY_LIMIT, Id, MAX_PAYLOAD_BYTES, parse, QuestionId } from './validation.js';
+import {
+  BODY_LIMIT,
+  Id,
+  MAX_PAYLOAD_BYTES,
+  NO_NUL_MESSAGE,
+  parse,
+  QuestionId,
+} from './validation.js';
 import {
   completeSession,
   getExplanation,
@@ -48,6 +55,8 @@ const EventBody = z.object({
       (p) => Buffer.byteLength(JSON.stringify(p)) <= MAX_PAYLOAD_BYTES,
       `payload 不能超过 ${MAX_PAYLOAD_BYTES} 字节`,
     )
+    // 键或值里的 NUL 字符序列化后写成 \u0000
+    .refine((p) => !JSON.stringify(p).includes('\\u0000'), NO_NUL_MESSAGE)
     .optional(),
 });
 const CompleteBody = z.object({ endedEarly: z.boolean() });
@@ -57,20 +66,20 @@ export async function sessionRoutes(app: FastifyInstance) {
 
   app.post('/api/sessions', opts, async (req, reply) => {
     const { learnerId } = parse(StartBody, req.body);
-    const { created, view } = await startSession(app.db, learnerId);
+    const { created, view } = await startSession(app.pool, learnerId);
     return reply.code(created ? 201 : 200).send(view);
   });
 
-  app.get('/api/sessions/:id', async (req) => getSession(app.db, sessionIdOf(req)));
+  app.get('/api/sessions/:id', async (req) => getSession(app.pool, sessionIdOf(req)));
 
   app.get('/api/sessions/:id/questions/:qid', async (req) =>
-    getQuestion(app.db, sessionIdOf(req), questionIdOf(req)),
+    getQuestion(app.pool, sessionIdOf(req), questionIdOf(req)),
   );
 
   app.post('/api/sessions/:id/attempts', opts, async (req, reply) => {
     const sessionId = sessionIdOf(req);
     const body = parse(AttemptBody, req.body);
-    const { status, body: res } = await submitAttempt(app.db, sessionId, body);
+    const { status, body: res } = await submitAttempt(app.pool, sessionId, body);
     return reply.code(status).send(res);
   });
 
@@ -78,7 +87,7 @@ export async function sessionRoutes(app: FastifyInstance) {
     const sessionId = sessionIdOf(req);
     const { clientRequestId } = parse(SkipBody, req.body);
     const { status, body } = await skipQuestion(
-      app.db,
+      app.pool,
       sessionId,
       questionIdOf(req),
       clientRequestId,
@@ -87,21 +96,21 @@ export async function sessionRoutes(app: FastifyInstance) {
   });
 
   app.get('/api/sessions/:id/questions/:qid/explanation', async (req) =>
-    getExplanation(app.db, sessionIdOf(req), questionIdOf(req)),
+    getExplanation(app.pool, sessionIdOf(req), questionIdOf(req)),
   );
 
   app.post('/api/sessions/:id/events', opts, async (req, reply) => {
     const sessionId = sessionIdOf(req);
     const body = parse(EventBody, req.body);
-    const { status, body: res } = await recordEvent(app.db, sessionId, body);
+    const { status, body: res } = await recordEvent(app.pool, sessionId, body);
     return reply.code(status).send(res);
   });
 
   app.post('/api/sessions/:id/complete', opts, async (req) => {
     const sessionId = sessionIdOf(req);
     const { endedEarly } = parse(CompleteBody, req.body);
-    return completeSession(app.db, sessionId, endedEarly);
+    return completeSession(app.pool, sessionId, endedEarly);
   });
 
-  app.get('/api/sessions/:id/summary', async (req) => getSummary(app.db, sessionIdOf(req)));
+  app.get('/api/sessions/:id/summary', async (req) => getSummary(app.pool, sessionIdOf(req)));
 }

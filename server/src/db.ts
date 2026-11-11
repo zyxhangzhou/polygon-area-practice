@@ -5,8 +5,9 @@ export function createDb(databaseUrl: string) {
   const pool = new pg.Pool({
     connectionString: databaseUrl,
     connectionTimeoutMillis: 2000,
-    // 查询超时后 pg 让该查询报错，连接池随即销毁这条连接；
-    // 否则数据库卡住时超时的查询会一直占着连接，恢复后连接池仍是满的
+    // 查询超时后 pg 只让这次调用报错，服务端的查询仍在执行。pool.query 出错时连接池会销毁这条连接；
+    // 否则数据库卡住时超时的查询会一直占着连接，恢复后连接池仍是满的。
+    // 自己借出连接的地方（事务）要在出错时 release(err)，见 practice/tx.ts
     query_timeout: 2000,
     keepAlive: true,
     max: 10,

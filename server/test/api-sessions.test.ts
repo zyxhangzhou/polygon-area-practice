@@ -31,6 +31,24 @@ describe('POST /api/learners', () => {
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
   });
+
+  it('昵称含 NUL 字符：400，不是 500', async () => {
+    const res = await c.request('POST', '/api/learners', { nickname: 'a\u0000b' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('浏览器发送 JSON 头时：请求体为 {} 可以，为空返回 400', async () => {
+    const send = (payload: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/api/learners',
+        headers: { 'content-type': 'application/json' },
+        payload,
+      });
+    expect((await send('{}')).statusCode).toBe(201);
+    expect((await send('')).statusCode).toBe(400);
+  });
 });
 
 describe('POST /api/sessions', () => {

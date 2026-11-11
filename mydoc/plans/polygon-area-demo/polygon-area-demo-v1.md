@@ -113,6 +113,7 @@
 
 - 2026-11-11 · fab477d6 · D 评审讨论：作答重放返回首次结果（先错后对后重放第一次，`result` 仍为错误），`session` 是当前状态。
   - **E**：收到 `replayed: true` 时只按 `session` 刷新界面，不弹出对错反馈。
+  - **E**：`POST /api/learners` 等接口带 JSON 头时请求体要发 `{}`，空请求体会被 Fastify 拒绝（400）。
 
 ## Open questions
 

@@ -1,4 +1,5 @@
 import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
+import type pg from 'pg';
 import type { createDb } from '../db.js';
 import {
   attempts,
@@ -15,12 +16,11 @@ import { AppError } from '../errors.js';
 import { canonical } from '../grading/decimal.js';
 import { gradeAnswer } from '../grading/grade.js';
 import { summarize, type PracticeSummary, type QuestionOutcome } from '../grading/progress.js';
+import { withTransaction, type Tx } from './tx.js';
 import { sessionView, summaryView, type SessionView, type StageInfo } from './view.js';
 
 type Db = ReturnType<typeof createDb>['db'];
-type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
-
-const READ_ONLY = { isolationLevel: 'repeatable read', accessMode: 'read only' } as const;
+const READ_ONLY = { readOnly: true };
 
 // ---------- 错误 ----------
 
@@ -145,8 +145,8 @@ export async function createLearner(db: Db, nickname: string | null) {
 }
 
 /** 开始或继续练习。锁住学生行，同一学生的并发请求排队，第二个能看到第一个建好的会话。 */
-export async function startSession(db: Db, learnerId: string) {
-  return db.transaction(async (tx) => {
+export async function startSession(pool: pg.Pool, learnerId: string) {
+  return withTransaction(pool, async (tx) => {
     const [learner] = await tx
       .select({ id: learners.id })
       .from(learners)
@@ -182,33 +182,41 @@ export async function startSession(db: Db, learnerId: string) {
   });
 }
 
-export async function getSession(db: Db, sessionId: string) {
-  return db.transaction(async (tx) => {
-    const session = await findSession(tx, sessionId, false);
-    return buildView(tx, await loadRecords(tx, session));
-  }, READ_ONLY);
+export async function getSession(pool: pg.Pool, sessionId: string) {
+  return withTransaction(
+    pool,
+    async (tx) => {
+      const session = await findSession(tx, sessionId, false);
+      return buildView(tx, await loadRecords(tx, session));
+    },
+    READ_ONLY,
+  );
 }
 
 /** 题目详情：不含答案、常见错误和解析 */
-export async function getQuestion(db: Db, sessionId: string, questionId: number | null) {
-  return db.transaction(async (tx) => {
-    const session = await findSession(tx, sessionId, false);
-    const r = await loadRecords(tx, session);
-    const item = snapshotItem(r, questionId);
-    const q = await loadQuestion(tx, item.questionId);
-    const status = computeSummary(r).questions.find((x) => x.questionId === q.id)?.status;
-    return {
-      questionId: q.id,
-      stageId: item.stageId,
-      position: item.position,
-      shapeType: q.shapeType,
-      prompt: q.prompt,
-      figure: q.figure,
-      unit: q.unit,
-      hasVideo: q.videoUrl !== null,
-      status,
-    };
-  }, READ_ONLY);
+export async function getQuestion(pool: pg.Pool, sessionId: string, questionId: number | null) {
+  return withTransaction(
+    pool,
+    async (tx) => {
+      const session = await findSession(tx, sessionId, false);
+      const r = await loadRecords(tx, session);
+      const item = snapshotItem(r, questionId);
+      const q = await loadQuestion(tx, item.questionId);
+      const status = computeSummary(r).questions.find((x) => x.questionId === q.id)?.status;
+      return {
+        questionId: q.id,
+        stageId: item.stageId,
+        position: item.position,
+        shapeType: q.shapeType,
+        prompt: q.prompt,
+        figure: q.figure,
+        unit: q.unit,
+        hasVideo: q.videoUrl !== null,
+        status,
+      };
+    },
+    READ_ONLY,
+  );
 }
 
 // ---------- 作答 ----------
@@ -260,8 +268,8 @@ async function deriveResult(
   };
 }
 
-export async function submitAttempt(db: Db, sessionId: string, input: AttemptInput) {
-  return db.transaction(async (tx) => {
+export async function submitAttempt(pool: pg.Pool, sessionId: string, input: AttemptInput) {
+  return withTransaction(pool, async (tx) => {
     const session = await findSession(tx, sessionId, true);
 
     const [existing] = await tx
@@ -342,12 +350,12 @@ export async function submitAttempt(db: Db, sessionId: string, input: AttemptInp
 // ---------- 跳过 ----------
 
 export async function skipQuestion(
-  db: Db,
+  pool: pg.Pool,
   sessionId: string,
   questionId: number | null,
   clientRequestId: string,
 ) {
-  return db.transaction(async (tx) => {
+  return withTransaction(pool, async (tx) => {
     const session = await findSession(tx, sessionId, true);
 
     const [existing] = await tx
@@ -390,20 +398,24 @@ export async function skipQuestion(
 
 // ---------- 解析与学习事件 ----------
 
-export async function getExplanation(db: Db, sessionId: string, questionId: number | null) {
-  return db.transaction(async (tx) => {
-    const session = await findSession(tx, sessionId, false);
-    const r = await loadRecords(tx, session);
-    const item = snapshotItem(r, questionId);
-    if (!explanationAccessible(r, item.questionId)) throw explanationLocked();
-    const q = await loadQuestion(tx, item.questionId);
-    return {
-      questionId: q.id,
-      steps: q.explanation.steps,
-      tip: q.explanation.tip,
-      videoUrl: q.videoUrl,
-    };
-  }, READ_ONLY);
+export async function getExplanation(pool: pg.Pool, sessionId: string, questionId: number | null) {
+  return withTransaction(
+    pool,
+    async (tx) => {
+      const session = await findSession(tx, sessionId, false);
+      const r = await loadRecords(tx, session);
+      const item = snapshotItem(r, questionId);
+      if (!explanationAccessible(r, item.questionId)) throw explanationLocked();
+      const q = await loadQuestion(tx, item.questionId);
+      return {
+        questionId: q.id,
+        steps: q.explanation.steps,
+        tip: q.explanation.tip,
+        videoUrl: q.videoUrl,
+      };
+    },
+    READ_ONLY,
+  );
 }
 
 export interface EventInput {
@@ -413,8 +425,8 @@ export interface EventInput {
   payload?: Record<string, unknown>;
 }
 
-export async function recordEvent(db: Db, sessionId: string, input: EventInput) {
-  return db.transaction(async (tx) => {
+export async function recordEvent(pool: pg.Pool, sessionId: string, input: EventInput) {
+  return withTransaction(pool, async (tx) => {
     const session = await findSession(tx, sessionId, true);
 
     const [existing] = await tx
@@ -448,8 +460,8 @@ export async function recordEvent(db: Db, sessionId: string, input: EventInput) 
 
 // ---------- 结束与总结 ----------
 
-export async function completeSession(db: Db, sessionId: string, endedEarly: boolean) {
-  return db.transaction(async (tx) => {
+export async function completeSession(pool: pg.Pool, sessionId: string, endedEarly: boolean) {
+  return withTransaction(pool, async (tx) => {
     const session = await findSession(tx, sessionId, true);
     const r = await loadRecords(tx, session);
     if (session.status === 'completed') return buildView(tx, r);
@@ -471,26 +483,30 @@ export async function completeSession(db: Db, sessionId: string, endedEarly: boo
   });
 }
 
-export async function getSummary(db: Db, sessionId: string) {
-  return db.transaction(async (tx) => {
-    const session = await findSession(tx, sessionId, false);
-    const r = await loadRecords(tx, session);
-    const ids = r.snapshot.map((s) => s.questionId);
-    const texts = ids.length
-      ? await tx
-          .select({
-            id: questions.id,
-            prompt: questions.prompt,
-            knowledgePoint: questions.knowledgePoint,
-          })
-          .from(questions)
-          .where(inArray(questions.id, ids))
-      : [];
-    return summaryView(
-      session,
-      computeSummary(r),
-      await loadStageInfo(tx),
-      new Map(texts.map((t) => [t.id, t])),
-    );
-  }, READ_ONLY);
+export async function getSummary(pool: pg.Pool, sessionId: string) {
+  return withTransaction(
+    pool,
+    async (tx) => {
+      const session = await findSession(tx, sessionId, false);
+      const r = await loadRecords(tx, session);
+      const ids = r.snapshot.map((s) => s.questionId);
+      const texts = ids.length
+        ? await tx
+            .select({
+              id: questions.id,
+              prompt: questions.prompt,
+              knowledgePoint: questions.knowledgePoint,
+            })
+            .from(questions)
+            .where(inArray(questions.id, ids))
+        : [];
+      return summaryView(
+        session,
+        computeSummary(r),
+        await loadStageInfo(tx),
+        new Map(texts.map((t) => [t.id, t])),
+      );
+    },
+    READ_ONLY,
+  );
 }
