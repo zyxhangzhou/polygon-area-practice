@@ -33,7 +33,7 @@
 | 2 | B | 数据模型与题库 | `data-model-question-bank`（已归档 `2026-11-11-data-model-question-bank`） | A | ✅ merged #2 |
 | 3 | C | 判题核心 | `grading-core`（已归档 `2026-11-11-grading-core`） | B | ✅ merged #3 |
 | 4 | D | 练习会话 API | `practice-session-api`（PR #4） | C | ✅ merged #4（archived） |
-| 5 | E | 答题主流程前端 | `practice-ui`（分支 `change/practice-ui`） | D | in progress |
+| 5 | E | 答题主流程前端 | `practice-ui`（分支 `change/practice-ui`，PR #5） | D | PR open |
 | 6 | F | 学习总结页 | `summary-ui` | D, E | planned |
 | 7 | G | 首次上线 Render | `deploy-render` | E | planned |
 | 8 | H | 图形小镇与圆圆 | `town-and-companion` | E | planned |
@@ -147,3 +147,4 @@
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · E 开始：分支 `change/practice-ui`
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · E 的 OpenSpec 四个 artifact 已生成并通过 strict 校验，等待用户评审（含：重放显示规则修订、结束练习归 E）
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · 用户确认 E 的 artifact；出 v2（E 加入结束练习），开始实现 E
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · E 实现完成，开 PR #5；真实浏览器验证见 `docs/verification.md`

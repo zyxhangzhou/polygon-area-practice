@@ -134,7 +134,7 @@ export class PracticeStore {
     return null;
   }
 
-  /** 题目详情（不含答案）；题干不会变，按题号缓存。失败时返回 null（错误已按错误码处理） */
+  /** 题目详情（不含答案）；题干不会变，按题号缓存。失败时返回 null（被拒绝时已按错误码处理） */
   async fetchQuestion(questionId: number): Promise<QuestionDetail | null> {
     const cached = this.questions.get(questionId);
     if (cached) return cached;
@@ -143,8 +143,8 @@ export class PracticeStore {
       this.questions.set(questionId, res.data);
       return res.data;
     }
+    // 结果不确定时由页面显示"重新读取"
     if (res.kind === 'rejected') await this.handleRejected(res.code, res.message);
-    else this.set({ notice: '暂时连不上服务器，请稍后再试' });
     return null;
   }
 
@@ -160,8 +160,8 @@ export class PracticeStore {
       this.explanations.set(questionId, res.data);
       return res.data;
     }
+    // 结果不确定时由页面显示"重新读取"
     if (res.kind === 'rejected') await this.handleRejected(res.code, res.message);
-    else this.set({ notice: '暂时连不上服务器，请稍后再试' });
     return null;
   }
 
@@ -201,8 +201,13 @@ export class PracticeStore {
     void this.run();
   }
 
+  /** 清掉反馈与提示；等待重试时保留"结果不确定"的提示 */
   clearFeedback() {
-    this.set({ feedback: null, invalid: null, notice: null });
+    this.set({
+      feedback: null,
+      invalid: null,
+      notice: this.state.pendingRetry ? this.state.notice : null,
+    });
   }
 
   private enqueue(job: WriteJob) {

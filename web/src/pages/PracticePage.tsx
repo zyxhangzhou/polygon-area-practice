@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import type { Explanation, QuestionDetail, SessionView } from '../api/types';
 import { usePracticeState, useStore } from '../practice/context';
 import { Figure } from '../practice/Figure';
@@ -12,6 +12,39 @@ const STATUS_TEXT = {
   skipped: '跳过',
   solved: '已答对',
 } as const;
+
+/** 读取题目或解析：失败时（结果不确定）给出重试，不会一直停在"正在读取" */
+function useLoad<T>(load: () => Promise<T | null>) {
+  const [data, setData] = useState<T | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let active = true;
+    void load().then((d) => {
+      if (!active) return;
+      setData(d);
+      setFailed(d === null);
+    });
+    return () => {
+      active = false;
+    };
+    // load 由调用方用 useCallback 固定，attempt 变化时重新读取
+  }, [load, attempt]);
+  const reload = () => {
+    setFailed(false);
+    setAttempt((n) => n + 1);
+  };
+  return { data, failed, reload };
+}
+
+function LoadFailed({ what, onRetry }: { what: string; onRetry: () => void }) {
+  return (
+    <div role="alert" className="notice">
+      <p>暂时没能读取{what}，请检查网络后重试</p>
+      <button onClick={onRetry}>重新读取</button>
+    </div>
+  );
+}
 
 /** 地址中的题号是否可以直接打开：在本次练习中，且所在关卡已解锁 */
 function isOpenable(session: SessionView, qid: number | null): qid is number {
@@ -68,6 +101,7 @@ export function PracticePage({ qid }: { qid: number | null }) {
   return (
     <main className="page practice">
       <Progress session={session} qid={openable ? qid : null} />
+      <RetryPanel />
       <FinishPanel session={session} />
       {openable ? (
         <QuestionPanel key={qid} session={session} qid={qid} />
@@ -78,9 +112,28 @@ export function PracticePage({ qid }: { qid: number | null }) {
   );
 }
 
+// ---------- 结果不确定 ----------
+
+/** 放在页面层：不管当前显示哪道题，等待重试时都能看到提示和"再提交一次" */
+function RetryPanel() {
+  const store = useStore();
+  const { pendingRetry, notice } = usePracticeState();
+  if (!pendingRetry) return null;
+  return (
+    <div role="alert" className="notice uncertain">
+      <p>{notice}</p>
+      <button className="primary" onClick={() => store.retry()}>
+        再提交一次
+      </button>
+    </div>
+  );
+}
+
 // ---------- 进度 ----------
 
 function Progress({ session, qid }: { session: SessionView; qid: number | null }) {
+  // 等待重试时只能"再提交一次"，不能换题
+  const retrying = usePracticeState().pendingRetry !== null;
   const current = session.questions.find((q) => q.questionId === qid);
   const stageIndex = current ? session.stages.findIndex((s) => s.stageId === current.stageId) : -1;
   return (
@@ -110,7 +163,7 @@ function Progress({ session, qid }: { session: SessionView; qid: number | null }
                   <button
                     key={q.questionId}
                     className={`chip ${q.status} ${q.questionId === qid ? 'active' : ''}`}
-                    disabled={!stage.unlocked}
+                    disabled={!stage.unlocked || retrying}
                     aria-current={q.questionId === qid ? 'step' : undefined}
                     aria-label={`第 ${q.position} 题，${STATUS_TEXT[q.status]}`}
                     onClick={() => navigate(`/practice/${q.questionId}`)}
@@ -176,19 +229,12 @@ function FinishPanel({ session }: { session: SessionView }) {
 function QuestionPanel({ session, qid }: { session: SessionView; qid: number }) {
   const store = useStore();
   const state = usePracticeState();
-  const [detail, setDetail] = useState<QuestionDetail | null>(null);
+  const loadQuestion = useCallback(() => store.fetchQuestion(qid), [store, qid]);
+  const { data: detail, failed, reload } = useLoad<QuestionDetail>(loadQuestion);
   const [answer, setAnswer] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    let active = true;
-    void store.fetchQuestion(qid).then((d) => active && setDetail(d));
-    return () => {
-      active = false;
-    };
-  }, [store, qid]);
 
   // 换题时清掉上一题的反馈
   useEffect(() => {
@@ -219,6 +265,7 @@ function QuestionPanel({ session, qid }: { session: SessionView; qid: number }) 
     inputRef.current?.focus();
   }
 
+  if (failed) return <LoadFailed what="题目" onRetry={reload} />;
   if (!detail) return <p>正在读取题目…</p>;
 
   return (
@@ -239,7 +286,11 @@ function QuestionPanel({ session, qid }: { session: SessionView; qid: number }) 
               type="text"
               inputMode="decimal"
               autoComplete="off"
-              value={retrying?.type === 'attempt' ? retrying.answer : answer}
+              value={
+                retrying?.type === 'attempt' && retrying.questionId === qid
+                  ? retrying.answer
+                  : answer
+              }
               readOnly={retrying !== null}
               onChange={(e) => setAnswer(e.target.value)}
             />
@@ -257,14 +308,6 @@ function QuestionPanel({ session, qid }: { session: SessionView; qid: number }) 
         </form>
       )}
 
-      {retrying && (
-        <div role="alert" className="notice uncertain">
-          <p>{state.notice}</p>
-          <button className="primary" onClick={() => store.retry()}>
-            再提交一次
-          </button>
-        </div>
-      )}
       {!retrying && state.notice && (
         <p role="alert" className="notice">
           {state.notice}
@@ -273,7 +316,7 @@ function QuestionPanel({ session, qid }: { session: SessionView; qid: number }) 
 
       <div className="actions">
         {canExplain && (
-          <button onClick={() => setShowExplanation((v) => !v)}>
+          <button disabled={retrying !== null} onClick={() => setShowExplanation((v) => !v)}>
             {showExplanation ? '收起图文解析' : '看图文解析'}
           </button>
         )}
@@ -287,6 +330,7 @@ function QuestionPanel({ session, qid }: { session: SessionView; qid: number }) 
           session.currentQuestionId !== qid && (
             <button
               className="primary"
+              disabled={retrying !== null}
               onClick={() => navigate(`/practice/${session.currentQuestionId}`)}
             >
               {feedback?.kind === 'result' ? '下一题' : '去当前题'}
@@ -340,21 +384,15 @@ function FeedbackView({
 
 function ExplanationPanel({ qid }: { qid: number }) {
   const store = useStore();
-  const [explanation, setExplanation] = useState<Explanation | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    void store.fetchExplanation(qid).then((e) => active && setExplanation(e));
-    return () => {
-      active = false;
-    };
-  }, [store, qid]);
+  const loadExplanation = useCallback(() => store.fetchExplanation(qid), [store, qid]);
+  const { data: explanation, failed, reload } = useLoad<Explanation>(loadExplanation);
 
   // 解析真正显示出来才上报"打开图文解析"
   useEffect(() => {
     if (explanation) store.reportTextOpened(qid);
   }, [store, qid, explanation]);
 
+  if (failed) return <LoadFailed what="解析" onRetry={reload} />;
   if (!explanation) return <p>正在读取解析…</p>;
   return (
     <section className="explanation" aria-label="图文解析">

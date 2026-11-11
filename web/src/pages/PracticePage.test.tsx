@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionView } from '../api/types';
@@ -354,5 +354,88 @@ describe('结束练习', () => {
     view.session.status = 'completed';
     open(1, view);
     await waitFor(() => expect(window.location.pathname).toBe('/summary'));
+  });
+});
+
+describe('读取失败与等待重试', () => {
+  it('题目读取失败：提示并可以重新读取', async () => {
+    const { api } = open(1);
+    let fail = true;
+    api.on('GET', QUESTION, () =>
+      fail ? Promise.reject(new TypeError('Failed to fetch')) : json(200, questionDetail(1)),
+    );
+    expect(await screen.findByText(/暂时没能读取题目/)).toBeInTheDocument();
+    fail = false;
+    await userEvent.click(screen.getByRole('button', { name: '重新读取' }));
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+  });
+
+  it('解析读取失败：提示并可以重新读取', async () => {
+    const { api } = open(1, sessionView({ 1: 'wrong' }));
+    let fail = true;
+    api
+      .on('GET', /\/explanation$/, () =>
+        fail ? json(503, { status: 'error' }) : json(200, explanation(1)),
+      )
+      .on('POST', /\/events$/, json(201, { replayed: false }));
+    await userEvent.click(await screen.findByRole('button', { name: '看图文解析' }));
+    expect(await screen.findByText(/暂时没能读取解析/)).toBeInTheDocument();
+    expect(api.writes()).toEqual([]);
+    fail = false;
+    await userEvent.click(screen.getByRole('button', { name: '重新读取' }));
+    expect(await screen.findByRole('region', { name: '图文解析' })).toBeInTheDocument();
+  });
+
+  it('跳过结果不确定：显示"再提交一次"，题目导航被锁住', async () => {
+    const { api } = open(1);
+    api.on('POST', /\/skip$/, (_body, n) =>
+      n === 0
+        ? Promise.reject(new TypeError('Failed to fetch'))
+        : json(200, {
+            replayed: true,
+            alreadySolved: false,
+            session: sessionView({ 1: 'skipped' }),
+          }),
+    );
+    await screen.findByRole('textbox');
+    await userEvent.click(screen.getByRole('button', { name: '先跳过' }));
+    expect(await screen.findByText(/暂时没法确认/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '第 2 题，未作答' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: '再提交一次' }));
+    await waitFor(() => expect(window.location.pathname).toBe('/practice/2'));
+    const [first, second] = api.writes();
+    expect(second!.body).toEqual(first!.body);
+  });
+
+  it('等待重试时浏览器后退：提示和"再提交一次"仍在，别的题不显示待重试的答案', async () => {
+    const { api } = open(2, sessionView({ 1: 'solved' }));
+    window.history.replaceState(null, '', '/practice/1');
+    window.history.pushState(null, '', '/practice/2');
+    api.on('POST', /\/attempts$/, () => Promise.reject(new TypeError('Failed to fetch')));
+    await screen.findByRole('textbox');
+    await answer('48');
+    expect(await screen.findByText(/暂时没法确认/)).toBeInTheDocument();
+    await act(async () => {
+      window.history.back();
+      await new Promise((r) => window.addEventListener('popstate', r, { once: true }));
+    });
+    await waitFor(() => expect(window.location.pathname).toBe('/practice/1'));
+    expect(await screen.findByText('这道题已经做对了')).toBeInTheDocument();
+    expect(screen.getByText(/暂时没法确认/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '再提交一次' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '看图文解析' })).toBeDisabled();
+  });
+
+  it('全部做对后"完成练习"结果不确定：没有题目时也能"再提交一次"', async () => {
+    const done = sessionView(
+      Object.fromEntries(Array.from({ length: 12 }, (_, i) => [i + 1, 'solved'])),
+    );
+    const { api } = open('', done);
+    api.on('POST', /\/complete$/, (_body, n) => (n === 0 ? json(502, {}) : json(200, done)));
+    await userEvent.click(await screen.findByRole('button', { name: '完成练习' }));
+    expect(await screen.findByText(/暂时没法确认/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '再提交一次' }));
+    await waitFor(() => expect(window.location.pathname).toBe('/summary'));
+    expect(api.writes().map((c) => c.body)).toEqual([{ endedEarly: false }, { endedEarly: false }]);
   });
 });
