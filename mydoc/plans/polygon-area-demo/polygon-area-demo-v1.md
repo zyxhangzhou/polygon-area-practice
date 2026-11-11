@@ -23,8 +23,8 @@
 | Order | ID | Change | Ref | Depends on | Status |
 |---|---|---|---|---|---|
 | 1 | A | 项目骨架 | `project-scaffold`（已归档 `2026-11-11-project-scaffold`） | — | ✅ merged #1 |
-| 2 | B | 数据模型与题库 | `data-model-question-bank`（分支 `change/data-model-question-bank`） | A | pr #2 |
-| 3 | C | 判题核心 | `grading-core` | B | planned |
+| 2 | B | 数据模型与题库 | `data-model-question-bank`（已归档 `2026-11-11-data-model-question-bank`） | A | ✅ merged #2 |
+| 3 | C | 判题核心 | `grading-core`（分支 `change/grading-core`） | B | in progress |
 | 4 | D | 练习会话 API | `practice-session-api` | C | planned |
 | 5 | E | 答题主流程前端 | `practice-ui` | D | planned |
 | 6 | F | 学习总结页 | `summary-ui` | D, E | planned |
@@ -122,3 +122,5 @@
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · PR #1 子代理评审，修复 3 个问题并补测试（19/19 任务，34 个测试）；squash merge 为 c26e646；OpenSpec 归档为 `2026-11-11-project-scaffold`
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · B 开始：分支 `change/data-model-question-bank`
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · B 实现完成（14/14 任务，73 个测试，CI 两个 job 通过），开 PR #2；测试库隔离（Follow-up）已在 B 中完成
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · PR #2 子代理评审，修复后 22/22 任务、91 个测试；squash merge 为 7f7d960；OpenSpec 归档为 `2026-11-11-data-model-question-bank`（在 C 分支上提交）
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · C 开始：分支 `change/grading-core`
