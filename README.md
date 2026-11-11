@@ -76,6 +76,7 @@ TEST_DATABASE_URL=postgres://postgres:postgres@localhost:<端口>/polygon_test n
 |---|---|---|
 | `GET /api/health` | — | 健康检查 |
 | `POST /api/learners` | `{ nickname? }` | 创建匿名学生 → `201 { learnerId }` |
+| `GET /api/learners/:id/sessions` | — | 练习记录：最近 20 次练习，最近的在前，每次附统计 |
 | `POST /api/sessions` | `{ learnerId }` | 开始或继续练习：有进行中的会话返回 `200`，否则新建 `201`；返回会话状态 |
 | `GET /api/sessions/:id` | — | 会话状态：关卡、每题状态、当前题、能否完成、统计 |
 | `GET /api/sessions/:id/questions/:qid` | — | 题目详情，不含答案和解析 |

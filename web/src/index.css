@@ -197,3 +197,21 @@ button.link {
   border-radius: 8px;
   padding: 8px 12px;
 }
+.history-list {
+  padding-left: 0;
+  list-style: none;
+}
+.history-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding: 8px 0;
+}
+.history-title {
+  font-weight: bold;
+}
+.session-date {
+  color: var(--muted);
+}

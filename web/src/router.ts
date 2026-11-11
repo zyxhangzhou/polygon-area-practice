@@ -4,13 +4,17 @@ import { useSyncExternalStore } from 'react';
 export type Route =
   | { page: 'home' }
   | { page: 'practice'; qid: number | null }
-  | { page: 'summary' }
+  | { page: 'summary'; sessionId: string | null }
+  | { page: 'history' }
   | { page: 'not-found' };
 
 export function parseRoute(pathname: string): Route {
   const path = pathname.replace(/\/+$/, '') || '/';
   if (path === '/') return { page: 'home' };
-  if (path === '/summary') return { page: 'summary' };
+  if (path === '/summary') return { page: 'summary', sessionId: null };
+  if (path === '/history') return { page: 'history' };
+  const summary = /^\/summary\/([0-9a-fA-F-]{36})$/.exec(path);
+  if (summary) return { page: 'summary', sessionId: summary[1]!.toLowerCase() };
   if (path === '/practice') return { page: 'practice', qid: null };
   const m = /^\/practice\/([^/]+)$/.exec(path);
   if (m) {

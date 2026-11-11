@@ -105,6 +105,13 @@ export function HomePage() {
           <button onClick={() => navigate('/summary')}>查看总结</button>
         </>
       )}
+      {storage.getLearnerId() && state.kind !== 'loading' && state.kind !== 'offline' && (
+        <p>
+          <button className="link" onClick={() => navigate('/history')}>
+            练习记录
+          </button>
+        </p>
+      )}
       {error && (
         <p role="alert" className="notice">
           {error}

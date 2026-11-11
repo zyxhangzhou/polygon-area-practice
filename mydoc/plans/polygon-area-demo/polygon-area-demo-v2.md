@@ -1,3 +1,5 @@
+> Superseded by [v3](polygon-area-demo-v3.md) — 2026-11-11：练习记录划入 F。
+
 # 多边形面积练习 Demo — v2
 
 - Status: confirmed

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { request } from '../api/api';
 import type { QuestionDetail, SummaryResponse } from '../api/types';
-import { useStore } from '../practice/context';
+import { StoreProvider, useStore } from '../practice/context';
 import { ExplanationPanel } from '../practice/ExplanationPanel';
 import { Figure } from '../practice/Figure';
 import { LoadFailed, useLoad } from '../practice/load';
 import { startPractice } from '../practice/start';
+import { PracticeStore } from '../practice/store';
 import { navigate } from '../router';
 import { storage } from '../storage';
 import { buildAdvice } from '../summary/advice';
@@ -28,10 +29,18 @@ const excerpt = (text: string, max = 40) => (text.length > max ? `${text.slice(0
 
 /**
  * 学习总结（summary-page 规格）：数字、分类、原因都原样取自 GET /summary，不重新计算。
+ * 不带会话 ID 时显示浏览器里保存的当前会话；带 ID（来自练习记录）时显示那一次练习。
  */
-export function SummaryPage() {
-  const store = useStore();
-  const [sessionId] = useState(() => store.getState().sessionId ?? storage.getSessionId());
+export function SummaryPage({ sessionId: requested }: { sessionId: string | null }) {
+  const appStore = useStore();
+  const [current] = useState(() => appStore.getState().sessionId ?? storage.getSessionId());
+  const sessionId = requested ?? current;
+  // 回看用单独的 store：查看旧会话时不改动正在练习的会话
+  const [viewStore] = useState(() => {
+    const store = new PracticeStore();
+    if (sessionId) store.useSession(sessionId);
+    return store;
+  });
 
   const load = useCallback(async (): Promise<SummaryResponse | null> => {
     if (!sessionId) return null;
@@ -39,28 +48,30 @@ export function SummaryPage() {
     if (res.kind === 'ok') return res.data;
     // 只有会话确实不存在时才清除：保存的会话 ID 是匿名学生找回记录的唯一凭据
     if (res.kind === 'rejected' && res.code === 'SESSION_NOT_FOUND') {
-      storage.setSessionId(null);
-      navigate('/', { replace: true });
+      if (sessionId === current) {
+        storage.setSessionId(null);
+        navigate('/', { replace: true });
+      } else {
+        navigate('/history', { replace: true });
+      }
     }
     return null;
-  }, [sessionId]);
+  }, [sessionId, current]);
   const { data: summary, failed, reload } = useLoad<SummaryResponse>(load);
 
   useEffect(() => {
-    if (!sessionId) {
-      navigate('/', { replace: true });
-      return;
-    }
-    store.useSession(sessionId);
-  }, [store, sessionId]);
+    if (!sessionId) navigate('/', { replace: true });
+  }, [sessionId]);
 
-  // 进行中的会话没有总结可看：转到当前题
+  // 当前会话还在进行中：没有总结可看，转到当前题
+  const inProgress = summary !== null && summary.session.status !== 'completed';
+  const isCurrent = sessionId === current;
   useEffect(() => {
-    if (summary && summary.session.status !== 'completed') {
+    if (summary && inProgress && isCurrent) {
       const qid = summary.currentQuestionId;
       navigate(qid === null ? '/practice' : `/practice/${qid}`, { replace: true });
     }
-  }, [summary]);
+  }, [summary, inProgress, isCurrent]);
 
   if (failed && sessionId) {
     return (
@@ -69,18 +80,36 @@ export function SummaryPage() {
       </main>
     );
   }
-  if (!summary || summary.session.status !== 'completed') {
+  if (summary && inProgress && !isCurrent) {
+    return (
+      <main className="page summary">
+        <p>这次练习还没有结束。</p>
+        <button onClick={() => navigate('/history')}>练习记录</button>
+      </main>
+    );
+  }
+  if (!summary || inProgress) {
     return (
       <main className="page summary">
         <p>正在读取学习总结…</p>
       </main>
     );
   }
-  return <SummaryContent summary={summary} />;
+  return (
+    <StoreProvider store={viewStore}>
+      <SummaryContent summary={summary} appStore={appStore} />
+    </StoreProvider>
+  );
 }
 
-function SummaryContent({ summary }: { summary: SummaryResponse }) {
-  const store = useStore();
+function SummaryContent({
+  summary,
+  appStore,
+}: {
+  summary: SummaryResponse;
+  /** 应用的 store：再练一次会切换到新会话 */
+  appStore: PracticeStore;
+}) {
   const [openQid, setOpenQid] = useState<number | null>(null);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +120,7 @@ function SummaryContent({ summary }: { summary: SummaryResponse }) {
     if (starting) return;
     setStarting(true);
     setError(null);
-    const res = await startPractice(store);
+    const res = await startPractice(appStore);
     setStarting(false);
     if (!res.ok) setError(res.message);
   }
@@ -99,6 +128,13 @@ function SummaryContent({ summary }: { summary: SummaryResponse }) {
   return (
     <main className="page summary">
       <h1>学习总结</h1>
+      <p className="session-date">
+        {new Date(summary.session.startedAt).toLocaleString('zh-CN', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        })}{' '}
+        开始的练习
+      </p>
       <p className="encouragement">{advice.encouragement}</p>
       {summary.session.endedEarly && (
         <p className="ended-early">这次练习提前结束了，没做的题计入"需回顾"。</p>
@@ -157,6 +193,7 @@ function SummaryContent({ summary }: { summary: SummaryResponse }) {
         <button className="primary" disabled={starting} onClick={() => void again()}>
           再练一次
         </button>
+        <button onClick={() => navigate('/history')}>练习记录</button>
         <button onClick={() => navigate('/')}>回到首页</button>
       </div>
       {error && (

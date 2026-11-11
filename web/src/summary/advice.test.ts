@@ -139,23 +139,33 @@ describe('建议', () => {
     expect(a.suggestions).toContain('第 7 题跳过了，可以先从图文解析开始。');
   });
 
-  it('提前结束：说出没作答的题数，并列出建议复习的知识点（去重）', () => {
-    const rest = Array.from({ length: 10 }, (_, i) => ({
-      ...notYet(i + 3, 'unanswered', { attemptCount: 0 }),
-      knowledgePoint: i < 5 ? '甲' : '乙',
-    }));
-    const a = buildAdvice(summary(rest));
-    expect(a.suggestions).toContain(
-      '还有 10 道题没有作答：第 3、4、5、6、7、8、9、10、11、12 题。',
+  it('提前结束：没作答的题单独一句，不列它们的知识点', () => {
+    const rest = Array.from({ length: 10 }, (_, i) =>
+      notYet(i + 3, 'unanswered', { attemptCount: 0 }),
     );
-    expect(a.suggestions).toContain('建议复习：甲；乙。');
+    const a = buildAdvice(summary(rest));
+    expect(a.suggestions).toContain('还有 10 题没练，下次可以继续挑战。');
+    expect(a.suggestions.some((s) => s.startsWith('建议复习'))).toBe(false);
+  });
+
+  it('建议复习：依次为答错没改对、经过订正、跳过的知识点，去重；不含没作答的', () => {
+    const a = buildAdvice(
+      summary([
+        { ...notYet(7, 'skipped'), knowledgePoint: '跳过的点' },
+        { ...corrected(2), knowledgePoint: '订正的点' },
+        { ...corrected(5), knowledgePoint: '答错的点' },
+        { ...notYet(9, 'wrong'), knowledgePoint: '答错的点' },
+        { ...notYet(12, 'unanswered'), knowledgePoint: '没作答的点' },
+      ]),
+    );
+    expect(a.suggestions).toContain('建议复习：答错的点；订正的点；跳过的点。');
   });
 
   it('全部一次做对：唯一的建议是再练一次', () => {
     expect(buildAdvice(summary([])).suggestions).toEqual(['可以再练一次，看看能不能保持全对。']);
   });
 
-  it('类别顺序固定：看解析后做对、自己改正、还没改对、跳过、没作答、复习知识点', () => {
+  it('类别顺序固定：看解析后做对、自己改正、还没改对、跳过、复习知识点、没作答', () => {
     const a = buildAdvice(
       summary([
         corrected(1, { textOpenedBeforeSolved: true }),
@@ -165,7 +175,7 @@ describe('建议', () => {
         notYet(5, 'unanswered'),
       ]),
     );
-    const keys = ['后做对了', '自己改正', '还没改对', '跳过了', '没有作答', '建议复习'];
+    const keys = ['后做对了', '自己改正', '还没改对', '跳过了', '建议复习', '没练'];
     expect(a.suggestions.map((s) => keys.findIndex((k) => s.includes(k)))).toEqual([
       0, 1, 2, 3, 4, 5,
     ]);

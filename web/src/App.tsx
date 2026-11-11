@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { HistoryPage } from './pages/HistoryPage';
 import { HomePage } from './pages/HomePage';
 import { PracticePage } from './pages/PracticePage';
 import { SummaryPage } from './pages/SummaryPage';
@@ -13,7 +14,10 @@ export function App({ store: injected }: { store?: PracticeStore }) {
     <StoreProvider store={store}>
       {route.page === 'home' && <HomePage />}
       {route.page === 'practice' && <PracticePage qid={route.qid} />}
-      {route.page === 'summary' && <SummaryPage />}
+      {route.page === 'summary' && (
+        <SummaryPage key={route.sessionId ?? 'current'} sessionId={route.sessionId} />
+      )}
+      {route.page === 'history' && <HistoryPage />}
       {route.page === 'not-found' && (
         <main className="page">
           <p>页面不存在。</p>

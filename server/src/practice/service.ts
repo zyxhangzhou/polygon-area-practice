@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import type pg from 'pg';
 import type { createDb } from '../db.js';
 import {
@@ -180,6 +180,47 @@ export async function startSession(pool: pg.Pool, learnerId: string) {
     );
     return { created: true, view: await freshView(tx, session!.id) };
   });
+}
+
+/** 练习记录最多返回最近的这么多次 */
+export const HISTORY_LIMIT = 20;
+
+/**
+ * 一个学生的练习记录（最近的在前），每次附上统计。
+ * 学生 ID 与会话 ID 一样是访问凭证：拿到它就能看到这个学生的记录。
+ */
+export async function listLearnerSessions(pool: pg.Pool, learnerId: string) {
+  return withTransaction(
+    pool,
+    async (tx) => {
+      const [learner] = await tx
+        .select({ id: learners.id })
+        .from(learners)
+        .where(eq(learners.id, learnerId));
+      if (!learner) throw new AppError(404, 'LEARNER_NOT_FOUND', '找不到这个学生');
+      const sessions = await tx
+        .select()
+        .from(practiceSessions)
+        .where(eq(practiceSessions.learnerId, learnerId))
+        .orderBy(desc(practiceSessions.startedAt), desc(practiceSessions.id))
+        .limit(HISTORY_LIMIT);
+      const items = [];
+      for (const session of sessions) {
+        const summary = computeSummary(await loadRecords(tx, session));
+        items.push({
+          id: session.id,
+          status: session.status,
+          endedEarly: session.endedEarly,
+          startedAt: session.startedAt.toISOString(),
+          completedAt: session.completedAt?.toISOString() ?? null,
+          counts: summary.counts,
+          rates: summary.rates,
+        });
+      }
+      return { sessions: items };
+    },
+    READ_ONLY,
+  );
 }
 
 export async function getSession(pool: pg.Pool, sessionId: string) {

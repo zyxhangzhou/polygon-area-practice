@@ -78,16 +78,15 @@ export function buildAdvice(summary: AdviceInput): Advice {
   const skipped = qs.filter((q) => q.reviewReason === 'skipped');
   if (skipped.length > 0) suggestions.push(`${nums(skipped)}跳过了，可以先从图文解析开始。`);
 
-  // 5. 没有作答
+  // 5. 建议复习的知识点：只取练过的题，依次为答错没改对、经过订正、跳过
+  const reviewOrder = [...wrong, ...corrected, ...skipped];
+  const points = [...new Set(reviewOrder.map((q) => q.knowledgePoint))];
+  if (points.length > 0) suggestions.push(`建议复习：${points.join('；')}。`);
+
+  // 6. 没有作答：单独一句，不列知识点
   const unanswered = qs.filter((q) => q.reviewReason === 'unanswered');
   if (unanswered.length > 0)
-    suggestions.push(`还有 ${unanswered.length} 道题没有作答：${nums(unanswered)}。`);
-
-  // 6. 建议复习的知识点
-  const points = [
-    ...new Set(qs.filter((q) => q.outcome === 'not_yet').map((q) => q.knowledgePoint)),
-  ];
-  if (points.length > 0) suggestions.push(`建议复习：${points.join('；')}。`);
+    suggestions.push(`还有 ${unanswered.length} 题没练，下次可以继续挑战。`);
 
   // 7. 全部一次做对
   if (suggestions.length === 0) suggestions.push('可以再练一次，看看能不能保持全对。');
