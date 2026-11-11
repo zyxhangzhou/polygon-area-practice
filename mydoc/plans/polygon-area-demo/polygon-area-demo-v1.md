@@ -1,3 +1,5 @@
+> Superseded by [v2](polygon-area-demo-v2.md) — 2026-11-11：结束练习划入 E。
+
 # 多边形面积练习 Demo — v1
 
 - Status: confirmed
