@@ -30,7 +30,7 @@
 
 ## 6. 文档与 CI
 
-- [ ] 6.1 README：数据库命令（`db:generate` / `db:migrate` / `db:seed`）、"启动时自动迁移与种子"说明、常见故障新增"启动即退出：数据库准备失败"；`npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
+- [x] 6.1 README：数据库命令（`db:generate` / `db:migrate` / `db:seed`）、"启动时自动迁移与种子"说明、常见故障新增"启动即退出：数据库准备失败"；`npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
 
 ## Workflow follow-up
 
