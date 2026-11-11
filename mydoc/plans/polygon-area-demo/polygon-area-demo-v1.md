@@ -22,8 +22,8 @@
 
 | Order | ID | Change | Ref | Depends on | Status |
 |---|---|---|---|---|---|
-| 1 | A | 项目骨架 | `project-scaffold`（分支 `change/project-scaffold`） | — | pr #1 |
-| 2 | B | 数据模型与题库 | `data-model-question-bank` | A | planned |
+| 1 | A | 项目骨架 | `project-scaffold`（已归档 `2026-11-11-project-scaffold`） | — | ✅ merged #1 |
+| 2 | B | 数据模型与题库 | `data-model-question-bank`（分支 `change/data-model-question-bank`） | A | in progress |
 | 3 | C | 判题核心 | `grading-core` | B | planned |
 | 4 | D | 练习会话 API | `practice-session-api` | C | planned |
 | 5 | E | 答题主流程前端 | `practice-ui` | D | planned |
@@ -114,3 +114,5 @@
 - 2026-11-10 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · v1 写入并确认
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · A 开始：OpenSpec change `project-scaffold` 四个 artifact 已生成并通过 strict 校验；Dockerfile 归入 A（G 复用）
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · A 实现完成（12/12 任务，18 个测试，CI 通过），开 PR #1
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · PR #1 子代理评审，修复 3 个问题并补测试（19/19 任务，34 个测试）；squash merge 为 c26e646；OpenSpec 归档为 `2026-11-11-project-scaffold`
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · B 开始：分支 `change/data-model-question-bank`
