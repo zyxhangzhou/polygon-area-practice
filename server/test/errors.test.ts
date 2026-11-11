@@ -2,6 +2,7 @@ import { Writable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
+import { AppError } from '../src/errors.js';
 import { TEST_DATABASE_URL } from './helpers.js';
 
 /** 收集 pino 输出的 JSON 日志行 */
@@ -30,6 +31,9 @@ describe('统一错误格式与请求 ID 日志', () => {
     app.get('/api/__boom', async () => {
       throw new Error('secret internal detail');
     });
+    app.get('/api/__app_error', async () => {
+      throw new AppError(409, 'SESSION_COMPLETED', '这次练习已经结束了', { reason: 'x' });
+    });
   });
   afterAll(async () => {
     await app.close();
@@ -45,6 +49,14 @@ describe('统一错误格式与请求 ID 日志', () => {
     expect(res.statusCode).toBe(400);
     expect(res.json()).toEqual({
       error: { code: 'BAD_REQUEST', message: expect.any(String) },
+    });
+  });
+
+  it('业务错误 AppError：按原状态码、错误码和附加字段返回', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/__app_error' });
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toEqual({
+      error: { code: 'SESSION_COMPLETED', message: '这次练习已经结束了', reason: 'x' },
     });
   });
 

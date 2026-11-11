@@ -1,6 +1,6 @@
 /** 统一错误响应格式：{ error: { code, message } } */
-export function errorBody(code: string, message: string) {
-  return { error: { code, message } };
+export function errorBody(code: string, message: string, details?: Record<string, unknown>) {
+  return { error: { ...details, code, message } };
 }
 
 /**
@@ -28,4 +28,18 @@ export function describeError(err: unknown): string {
     current = current.cause;
   }
   return parts.join(' ← ') || String(err);
+}
+
+/** 业务错误：错误处理器按原状态码和错误码返回 */
+export class AppError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+    /** 附加在 error 对象里的字段，如不合法输入的原因代码 */
+    readonly details?: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = 'AppError';
+  }
 }

@@ -91,6 +91,8 @@ export const practiceSessions = pgTable(
     startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp('completed_at', { withTimezone: true }),
     endedEarly: boolean('ended_early'),
+    /** 结束时从 practice_record_seq 取的值；总结只统计 seq 小于它的学习事件 */
+    completedSeq: bigint('completed_seq', { mode: 'number' }),
   },
   (t) => [
     check('practice_sessions_status_ck', sql`${t.status} in ('in_progress', 'completed')`),
@@ -98,6 +100,11 @@ export const practiceSessions = pgTable(
     check(
       'practice_sessions_completed_at_ck',
       sql`(${t.status} = 'completed') = (${t.completedAt} is not null)`,
+    ),
+    // completed ⇔ 有结束序号
+    check(
+      'practice_sessions_completed_seq_ck',
+      sql`(${t.status} = 'completed') = (${t.completedSeq} is not null)`,
     ),
     // 每个学生同时最多一个进行中的练习
     uniqueIndex('practice_sessions_one_in_progress_uq')

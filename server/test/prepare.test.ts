@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
@@ -15,6 +16,12 @@ const scratchUrl = (() => {
   return u.toString();
 })();
 const serverDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+/** 仓库中的迁移数量，以 drizzle 的迁移清单为准 */
+const MIGRATION_COUNT = (
+  JSON.parse(fs.readFileSync(path.join(serverDir, 'drizzle/meta/_journal.json'), 'utf8')) as {
+    entries: unknown[];
+  }
+).entries.length;
 
 async function query<T extends pg.QueryResultRow>(url: string, sql: string) {
   const c = new pg.Client({ connectionString: url });
@@ -43,7 +50,7 @@ describe('prepareDatabase', () => {
     await prepareDatabase(scratchUrl);
     expect(await count('select count(*) as n from questions')).toBe(12);
     const migrations = await count('select count(*) as n from drizzle.__drizzle_migrations');
-    expect(migrations).toBe(2);
+    expect(migrations).toBe(MIGRATION_COUNT);
     await prepareDatabase(scratchUrl);
     expect(await count('select count(*) as n from drizzle.__drizzle_migrations')).toBe(migrations);
     expect(await count('select count(*) as n from questions')).toBe(12);
@@ -84,7 +91,9 @@ describe('启动时准备数据库（真实进程）', () => {
 
     const second = await startServer(scratchUrl);
     expect(await second.stop()).toBe(0);
-    expect(await count('select count(*) as n from drizzle.__drizzle_migrations')).toBe(2);
+    expect(await count('select count(*) as n from drizzle.__drizzle_migrations')).toBe(
+      MIGRATION_COUNT,
+    );
     expect(await count('select count(*) as n from questions')).toBe(12);
   });
 
