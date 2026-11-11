@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { request } from '../api/api';
-import type { LearnerResponse, SessionView } from '../api/types';
+import type { SessionView } from '../api/types';
 import { useStore } from '../practice/context';
+import { OFFLINE_MESSAGE, startPractice } from '../practice/start';
 import { navigate } from '../router';
 import { storage } from '../storage';
 
@@ -11,8 +12,6 @@ type HomeState =
   | { kind: 'in_progress'; solved: number }
   | { kind: 'completed' }
   | { kind: 'offline' };
-
-const OFFLINE = '暂时连不上服务器，请稍后再试';
 
 /**
  * 首页（design D7）：按保存的会话决定按钮。打开页面只读取，不创建学生或会话；
@@ -57,43 +56,13 @@ export function HomePage() {
     };
   }, [store, reload]);
 
-  async function ensureLearner(): Promise<string | null> {
-    const saved = storage.getLearnerId();
-    if (saved) return saved;
-    const res = await request<LearnerResponse>('POST', '/api/learners', {});
-    if (res.kind !== 'ok') return null;
-    storage.setLearnerId(res.data.learnerId);
-    return res.data.learnerId;
-  }
-
-  /** 开始练习 / 再练一次：后端在没有进行中的会话时新建一个 */
   async function start() {
     if (starting) return;
     setStarting(true);
     setError(null);
-    try {
-      for (let tries = 0; tries < 2; tries++) {
-        const learnerId = await ensureLearner();
-        if (!learnerId) break;
-        const res = await request<SessionView>('POST', '/api/sessions', { learnerId });
-        if (res.kind === 'ok') {
-          const view = res.data;
-          storage.setSessionId(view.session.id);
-          store.useSession(view.session.id, view);
-          navigate(view.currentQuestionId ? `/practice/${view.currentQuestionId}` : '/practice');
-          return;
-        }
-        if (res.kind === 'rejected' && res.code === 'LEARNER_NOT_FOUND') {
-          // 保存的学生已失效：清除后重新创建一次
-          storage.clearAll();
-          continue;
-        }
-        break;
-      }
-      setError(OFFLINE);
-    } finally {
-      setStarting(false);
-    }
+    const res = await startPractice(store);
+    setStarting(false);
+    if (!res.ok) setError(res.message);
   }
 
   return (
@@ -103,7 +72,7 @@ export function HomePage() {
       {state.kind === 'loading' && <p>正在读取进度…</p>}
       {state.kind === 'offline' && (
         <div role="alert" className="notice">
-          <p>{OFFLINE}</p>
+          <p>{OFFLINE_MESSAGE}</p>
           <button
             onClick={() => {
               setState({ kind: 'loading' });

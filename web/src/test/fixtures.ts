@@ -1,5 +1,5 @@
 import { QUESTIONS } from '../../../server/src/content/questions';
-import type { Explanation, QuestionDetail } from '../api/types';
+import type { Explanation, QuestionDetail, SummaryResponse } from '../api/types';
 import type { AttemptResponse, AttemptResult, QuestionStatus, SessionView } from '../api/types';
 
 export const SESSION_ID = '11111111-1111-4111-8111-111111111111';
@@ -109,5 +109,70 @@ export function explanation(qid: number): Explanation {
     steps: q.explanation.steps,
     tip: q.explanation.tip,
     videoUrl: q.videoUrl,
+  };
+}
+
+type Outcome = SummaryResponse['questions'][number]['outcome'];
+type Reason = SummaryResponse['questions'][number]['reviewReason'];
+type Facts = SummaryResponse['questions'][number]['facts'];
+
+/** 已结束会话的学习总结；每题给出分类、原因与行为事实，未指定的题为一次做对 */
+export function summaryResponse(
+  items: Partial<
+    Record<number, { outcome: Outcome; reason?: Reason; facts?: Partial<Facts> }>
+  > = {},
+  { endedEarly = false } = {},
+): SummaryResponse {
+  const questions = QUESTIONS.map((q, i) => {
+    const item = items[q.id] ?? { outcome: 'first_try' as Outcome };
+    const reason = item.outcome === 'not_yet' ? (item.reason ?? 'unanswered') : null;
+    const status: QuestionStatus =
+      item.outcome !== 'not_yet'
+        ? 'solved'
+        : reason === 'wrong'
+          ? 'wrong'
+          : (reason ?? 'unanswered');
+    return {
+      questionId: q.id,
+      stageId: q.stageId,
+      position: i + 1,
+      status,
+      outcome: item.outcome,
+      reviewReason: reason,
+      facts: {
+        attemptCount: item.outcome === 'not_yet' && reason !== 'wrong' ? 0 : 1,
+        wrongCount: 0,
+        skipCount: reason === 'skipped' ? 1 : 0,
+        commonMistakes: [],
+        textOpened: false,
+        videoStarted: false,
+        videoCompleted: false,
+        textOpenedBeforeSolved: false,
+        videoStartedBeforeSolved: false,
+        videoCompletedBeforeSolved: false,
+        ...item.facts,
+      },
+      prompt: q.prompt,
+      knowledgePoint: q.knowledgePoint,
+    };
+  });
+  const count = (o: Outcome) => questions.filter((q) => q.outcome === o).length;
+  const firstTry = count('first_try');
+  const corrected = count('corrected');
+  const base = sessionView(Object.fromEntries(questions.map((q) => [q.questionId, q.status])));
+  return {
+    ...base,
+    session: {
+      ...base.session,
+      status: 'completed',
+      endedEarly,
+      completedAt: '2026-11-11T01:00:00.000Z',
+    },
+    counts: { total: 12, firstTry, corrected, notYet: 12 - firstTry - corrected },
+    rates: {
+      firstTry: Math.round((firstTry * 100) / 12),
+      completion: Math.round(((firstTry + corrected) * 100) / 12),
+    },
+    questions,
   };
 }

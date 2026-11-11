@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import type { Explanation, QuestionDetail, SessionView } from '../api/types';
+import type { QuestionDetail, SessionView } from '../api/types';
 import { usePracticeState, useStore } from '../practice/context';
 import { Figure } from '../practice/Figure';
+import { ExplanationPanel } from '../practice/ExplanationPanel';
+import { LoadFailed, useLoad } from '../practice/load';
 import type { Feedback } from '../practice/store';
 import { navigate } from '../router';
 import { storage } from '../storage';
@@ -12,39 +14,6 @@ const STATUS_TEXT = {
   skipped: '跳过',
   solved: '已答对',
 } as const;
-
-/** 读取题目或解析：失败时（结果不确定）给出重试，不会一直停在"正在读取" */
-function useLoad<T>(load: () => Promise<T | null>) {
-  const [data, setData] = useState<T | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-  useEffect(() => {
-    let active = true;
-    void load().then((d) => {
-      if (!active) return;
-      setData(d);
-      setFailed(d === null);
-    });
-    return () => {
-      active = false;
-    };
-    // load 由调用方用 useCallback 固定，attempt 变化时重新读取
-  }, [load, attempt]);
-  const reload = () => {
-    setFailed(false);
-    setAttempt((n) => n + 1);
-  };
-  return { data, failed, reload };
-}
-
-function LoadFailed({ what, onRetry }: { what: string; onRetry: () => void }) {
-  return (
-    <div role="alert" className="notice">
-      <p>暂时没能读取{what}，请检查网络后重试</p>
-      <button onClick={onRetry}>重新读取</button>
-    </div>
-  );
-}
 
 /** 地址中的题号是否可以直接打开：在本次练习中，且所在关卡已解锁 */
 function isOpenable(session: SessionView, qid: number | null): qid is number {
@@ -386,30 +355,5 @@ function FeedbackView({
       </p>
       {result.stageLit && stage && <p className="lit">{stage.buildingName}点亮了！</p>}
     </div>
-  );
-}
-
-function ExplanationPanel({ qid }: { qid: number }) {
-  const store = useStore();
-  const loadExplanation = useCallback(() => store.fetchExplanation(qid), [store, qid]);
-  const { data: explanation, failed, reload } = useLoad<Explanation>(loadExplanation);
-
-  // 解析真正显示出来才上报"打开图文解析"
-  useEffect(() => {
-    if (explanation) store.reportTextOpened(qid);
-  }, [store, qid, explanation]);
-
-  if (failed) return <LoadFailed what="解析" onRetry={reload} />;
-  if (!explanation) return <p>正在读取解析…</p>;
-  return (
-    <section className="explanation" aria-label="图文解析">
-      <h2>图文解析</h2>
-      <ol>
-        {explanation.steps.map((step, i) => (
-          <li key={i}>{step}</li>
-        ))}
-      </ol>
-      <p className="tip">易错提醒：{explanation.tip}</p>
-    </section>
   );
 }
