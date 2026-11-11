@@ -124,3 +124,4 @@
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · B 实现完成（14/14 任务，73 个测试，CI 两个 job 通过），开 PR #2；测试库隔离（Follow-up）已在 B 中完成
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · PR #2 子代理评审，修复后 22/22 任务、91 个测试；squash merge 为 7f7d960；OpenSpec 归档为 `2026-11-11-data-model-question-bank`（在 C 分支上提交）
 - 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · C 开始：分支 `change/grading-core`
+- 2026-11-11 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · C 的 OpenSpec 四个 artifact 已生成并通过 strict 校验，等待用户评审
