@@ -7,3 +7,5 @@ openspec
 mydoc
 .claude
 *.md
+# drizzle-kit 生成的迁移元数据，保持生成器原样
+server/drizzle/meta

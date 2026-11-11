@@ -32,6 +32,12 @@
 
 - [x] 6.1 README：数据库命令（`db:generate` / `db:migrate` / `db:seed`）、"启动时自动迁移与种子"说明、常见故障新增"启动即退出：数据库准备失败"；`npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
 
+## 7. 评审修复：种子调整顺序
+
+- [x] 7.1 用 `drizzle-kit generate --custom` 生成 `0001_deferrable_positions.sql`，把 `questions_stage_position_uq` 与 `stages_position_unique` 改为 `DEFERRABLE INITIALLY DEFERRED`；`schema.ts` 加注释说明
+- [x] 7.2 `validateSeed` 增加一致性检查（ID、关卡顺序、关内序号不重复，所属关卡存在，每关 3 题）；`seed` 写入前检查库中是否有种子之外的题目
+- [x] 7.3 测试：关内交换顺序、交换关卡顺序后重新执行种子成功；种子内序号重复被拒并指出题号；库中有种子之外的题被拒且提示 ID 不能删除；以上失败时题库不变；验证撤掉 7.1 后"交换顺序"测试失败
+
 ## Workflow follow-up
 
 - 开 PR 合并 `change/data-model-question-bank` 到 `main`（squash），在 `mydoc/plans/polygon-area-demo/` 中将 B 打勾。

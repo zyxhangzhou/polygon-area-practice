@@ -33,6 +33,10 @@ export type SessionStatus = (typeof SESSION_STATUSES)[number];
 
 // ---------- 题库 ----------
 
+// 注意：stages.position 与 questions(stage_id, position_in_stage) 两个唯一约束在数据库中是
+// DEFERRABLE INITIALLY DEFERRED（迁移 0001_deferrable_positions.sql），以便种子在一个事务里
+// 交换顺序。Drizzle 无法在此表达，drizzle-kit 也不会把它改回去。
+
 export const stages = pgTable('stages', {
   id: integer('id').primaryKey(),
   position: integer('position').notNull().unique(),

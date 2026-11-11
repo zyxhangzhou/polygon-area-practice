@@ -111,4 +111,42 @@ describe('种子', () => {
     const [q7] = await db.select().from(questions).where(eq(questions.id, 7));
     expect(q7!.prompt).toBe(QUESTIONS.find((q) => q.id === 7)!.prompt);
   });
+
+  it('关内交换题目顺序、交换关卡顺序后重新执行种子成功', async () => {
+    const swappedQuestions = QUESTIONS.map((q) =>
+      q.id === 1 ? { ...q, positionInStage: 2 } : q.id === 2 ? { ...q, positionInStage: 1 } : q,
+    );
+    const swappedStages = STAGES.map((s) =>
+      s.id === 3 ? { ...s, position: 4 } : s.id === 4 ? { ...s, position: 3 } : s,
+    );
+    await seed(db, { stages: swappedStages, questions: swappedQuestions });
+
+    const qs = await db.select().from(questions).orderBy(asc(questions.id));
+    expect(qs.slice(0, 2).map((q) => q.positionInStage)).toEqual([2, 1]);
+    const ss = await db.select().from(stages).orderBy(asc(stages.id));
+    expect(ss.map((s) => s.position)).toEqual([1, 2, 4, 3]);
+
+    // 换回来也一样能成功
+    await seed(db);
+    const restored = await db.select().from(stages).orderBy(asc(stages.id));
+    expect(restored.map((s) => s.position)).toEqual([1, 2, 3, 4]);
+  });
+
+  it('种子内关内序号重复：拒绝并指出题号，题库不变', async () => {
+    const before = await db.select().from(questions).orderBy(asc(questions.id));
+    const dup = QUESTIONS.map((q) => (q.id === 2 ? { ...q, positionInStage: 1 } : q));
+    const run = seed(db, { stages: STAGES, questions: dup });
+    await expect(run).rejects.toThrow(SeedValidationError);
+    await expect(run).rejects.toThrow(/第 2 题.*与第 1 题重复/);
+    expect(await db.select().from(questions).orderBy(asc(questions.id))).toEqual(before);
+  });
+
+  it('库中有种子之外的题目：拒绝并提示题目 ID 不能删除，题库不变', async () => {
+    const before = await db.select().from(questions).orderBy(asc(questions.id));
+    const replaced = [...QUESTIONS.filter((q) => q.id !== 3), { ...QUESTIONS[2]!, id: 13 }];
+    const run = seed(db, { stages: STAGES, questions: replaced });
+    await expect(run).rejects.toThrow(SeedValidationError);
+    await expect(run).rejects.toThrow(/题目 3 .*题目 ID 不能删除/);
+    expect(await db.select().from(questions).orderBy(asc(questions.id))).toEqual(before);
+  });
 });

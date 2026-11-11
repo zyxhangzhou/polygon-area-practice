@@ -1,8 +1,13 @@
-import { sql } from 'drizzle-orm';
+import { notInArray, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { z } from 'zod';
 import { QUESTIONS, STAGES } from '../content/questions.js';
-import { QuestionSeedSchema, StageSeedSchema } from '../content/schema.js';
+import {
+  type QuestionSeed,
+  QuestionSeedSchema,
+  type StageSeed,
+  StageSeedSchema,
+} from '../content/schema.js';
 import { questions, stages } from './schema.js';
 
 export class SeedValidationError extends Error {
@@ -31,10 +36,58 @@ export function validateSeed(data: SeedData) {
     return r.data;
   });
   if (issues.length > 0) throw new SeedValidationError(issues);
-  return {
+  const valid = {
     stages: parsedStages.filter((s) => s !== undefined),
     questions: parsedQuestions.filter((q) => q !== undefined),
   };
+  checkConsistency(valid, issues);
+  if (issues.length > 0) throw new SeedValidationError(issues);
+  return valid;
+}
+
+/** 数据自身的一致性：在写库前发现，避免只拿到数据库的唯一约束名 */
+function checkConsistency(
+  data: { stages: StageSeed[]; questions: QuestionSeed[] },
+  issues: string[],
+) {
+  const firstSeen = <T>(items: T[], key: (t: T) => string, describe: (t: T, prev: T) => string) => {
+    const seen = new Map<string, T>();
+    for (const item of items) {
+      const k = key(item);
+      const prev = seen.get(k);
+      if (prev) issues.push(describe(item, prev));
+      else seen.set(k, item);
+    }
+  };
+  firstSeen(
+    data.stages,
+    (s) => String(s.id),
+    (s) => `关卡 ${s.id}：ID 重复`,
+  );
+  firstSeen(
+    data.stages,
+    (s) => String(s.position),
+    (s, prev) => `关卡 ${s.id}：顺序 ${s.position} 与关卡 ${prev.id} 重复`,
+  );
+  firstSeen(
+    data.questions,
+    (q) => String(q.id),
+    (q) => `第 ${q.id} 题：ID 重复`,
+  );
+  firstSeen(
+    data.questions,
+    (q) => `${q.stageId}/${q.positionInStage}`,
+    (q, prev) =>
+      `第 ${q.id} 题：关卡 ${q.stageId} 的关内序号 ${q.positionInStage} 与第 ${prev.id} 题重复`,
+  );
+  const stageIds = new Set(data.stages.map((s) => s.id));
+  for (const q of data.questions) {
+    if (!stageIds.has(q.stageId)) issues.push(`第 ${q.id} 题：所属关卡 ${q.stageId} 不存在`);
+  }
+  for (const s of data.stages) {
+    const n = data.questions.filter((q) => q.stageId === s.id).length;
+    if (n !== 3) issues.push(`关卡 ${s.id}：应恰好 3 道题，实际 ${n} 道`);
+  }
 }
 
 /**
@@ -47,6 +100,24 @@ export async function seed(
 ) {
   const valid = validateSeed(data);
   await db.transaction(async (tx) => {
+    // 题目 ID 永久有效：已有快照引用它，不能因为从种子中移除而删除
+    const orphans = await tx
+      .select({ id: questions.id })
+      .from(questions)
+      .where(
+        notInArray(
+          questions.id,
+          valid.questions.map((q) => q.id),
+        ),
+      );
+    if (orphans.length > 0) {
+      throw new SeedValidationError(
+        orphans.map(
+          (o) =>
+            `题目 ${o.id} 在数据库中但不在种子中：题目 ID 不能删除，替换题目请在原 ID 上修改内容`,
+        ),
+      );
+    }
     for (const s of valid.stages) {
       await tx
         .insert(stages)

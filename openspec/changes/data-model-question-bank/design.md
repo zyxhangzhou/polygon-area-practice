@@ -35,8 +35,8 @@ ID 约定：
 
 | 表 | 主要列 | 约束 |
 |---|---|---|
-| `stages` | `id` int PK, `position`, `name`, `building_name`, `intro` | `position` 唯一 |
-| `questions` | `id` int PK, `stage_id` FK, `position_in_stage` 1–3, `shape_type`, `prompt`, `figure` jsonb, `answer` numeric(10,2), `unit`, `explanation` jsonb, `video_url` 可空, `common_mistakes` jsonb, `knowledge_point` | `(stage_id, position_in_stage)` 唯一；`position_in_stage` 在 1–3 之间；`answer >= 0` |
+| `stages` | `id` int PK, `position`, `name`, `building_name`, `intro` | `position` 唯一（**提交时检查**，见下） |
+| `questions` | `id` int PK, `stage_id` FK, `position_in_stage` 1–3, `shape_type`, `prompt`, `figure` jsonb, `answer` numeric(10,2), `unit`, `explanation` jsonb, `video_url` 可空, `common_mistakes` jsonb, `knowledge_point` | `(stage_id, position_in_stage)` 唯一（**提交时检查**）；`position_in_stage` 在 1–3 之间；`answer >= 0` |
 | `learners` | `id` uuid PK, `nickname` 可空, `created_at` | — |
 | `practice_sessions` | `id` uuid PK, `learner_id` FK, `status`, `started_at`, `completed_at` 可空, `ended_early` 可空 | `status` 只能是 `in_progress` 或 `completed`；`status='completed'` 当且仅当 `completed_at` 非空；部分唯一索引 `(learner_id) WHERE status='in_progress'` |
 | `session_questions` | `session_id` FK（级联删除）, `question_id` FK, `position`, `stage_id` | PK `(session_id, question_id)`；`(session_id, position)` 唯一 |
@@ -50,6 +50,7 @@ ID 约定：
 - **快照只记录题号、顺序和关卡**，不复制题干和答案。大纲要求"题库之后修改不影响已有会话"，指的是题目组成和顺序。题干改错别字应该同时修正旧会话的回看内容。
 - **级联删除**：`session_questions`、`attempts`、`question_skips`、`learning_events` 随会话删除，会话随学生删除。目的是方便测试清理和以后的数据清除，业务上不提供删除接口。
 - 时间列一律用 `timestamptz`。
+- **位置唯一约束改为提交时检查**（`DEFERRABLE INITIALLY DEFERRED`，评审发现）：种子按 ID 逐行 upsert。若唯一约束立即生效，交换两道题的顺序时，第一行更新就会撞上另一道题还没更新的旧位置，事务失败，服务启动失败。改为提交时检查后，事务中途允许暂时重复，提交时仍保证唯一。upsert 以主键判断冲突，不依赖这两个约束，不受影响。Drizzle 的 schema 写不出可延迟约束，所以用 `drizzle-kit generate --custom` 单独生成迁移 `0001_deferrable_positions.sql`，并在 `schema.ts` 中注释说明。
 
 ### D2. 迁移：drizzle-kit 生成 SQL，运行时由 drizzle migrator 执行
 - `server/drizzle.config.ts` 指向 `src/db/schema.ts`，`npm run db:generate -w server` 把迁移生成到 `server/drizzle/`，**提交到仓库**。
@@ -73,7 +74,8 @@ ID 约定：
 - `seed(db)`：
   - 先用 zod 校验全部数据，有错误时报出题号，一行都不写。
   - 然后在一个事务里对 `stages` 和 `questions` 按 ID 执行 `INSERT ... ON CONFLICT (id) DO UPDATE`。
-  - 不删除种子以外的题。目前没有这种情况，删题会影响已有快照。
+  - **题目 ID 永久有效，不删除**：已有快照会引用题目 ID。写入前检查库中是否有种子之外的题；如果有，报错"题目 ID 不能删除，替换题目请在原 ID 上修改内容"，不写入。
+- 种子写库之前，先检查数据自身的一致性：ID 不重复、关卡顺序不重复、同一关内序号不重复、所属关卡存在、每关恰好 3 题。不能等数据库报唯一约束冲突，那时只有一个约束名，看不出是哪道题。
 - 图形参数校验的是**结构**，不校验答案和参数是否自洽（例如底×高是否等于答案）。自洽性由单元测试按题检查：每道题按公式用图形参数重新计算，结果应等于答案。这样能抓住"改了参数忘了改答案"的错误。
 - 第 4、10 题的视频地址填 `/videos/q04.mp4`、`/videos/q10.mp4`。在 I 提供文件之前，这两个地址会返回 404，符合 A 的托管规则，也不会被误当成页面。
 
