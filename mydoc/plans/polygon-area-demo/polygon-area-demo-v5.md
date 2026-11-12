@@ -39,7 +39,7 @@
 | 8 | H | 图形小镇与圆圆 | `town-and-companion`（已归档 `2026-11-12-town-and-companion`） | E | ✅ merged #8（archived） |
 | 9 | I | 视频解析 | `video-explanations`（已归档 `2026-11-12-video-explanations`） | E | ✅ merged #9（archived） |
 | 10 | J | 文档与交付 | `docs-and-delivery`（已归档 `2026-11-12-docs-and-delivery`） | A–I | ✅ merged #10（archived） |
-| 11 | K | 视频字幕与画面安全区 | `video-caption-layout`（分支 `change/video-caption-layout`） | I | in progress |
+| 11 | K | 视频字幕与画面安全区 | `video-caption-layout`（分支 `change/video-caption-layout`，PR #12） | I | PR open |
 
 ### A — 项目骨架
 

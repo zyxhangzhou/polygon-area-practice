@@ -12,7 +12,7 @@
 ## 3. 验证
 
 - [x] 3.1 浏览器实跑：第 4 题第 13 秒附近播放与暂停时截图，没有遮挡；全屏时显示浏览器字幕，退出后恢复；记入 `docs/verification.md`
-- [ ] 3.2 `npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
+- [x] 3.2 `npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
 
 ## Workflow follow-up
 
