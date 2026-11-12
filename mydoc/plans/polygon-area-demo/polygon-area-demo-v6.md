@@ -1,6 +1,6 @@
 # 多边形面积练习 Demo — v6
 
-- Status: confirmed
+- Status: completed
 - Supersedes: v5
 - Date: 2026-11-12
 - Session: fab477d6-36b6-4a67-8f33-b1ddf1cee503
@@ -40,7 +40,7 @@
 | 9 | I | 视频解析 | `video-explanations`（已归档 `2026-11-12-video-explanations`） | E | ✅ merged #9（archived） |
 | 10 | J | 文档与交付 | `docs-and-delivery`（已归档 `2026-11-12-docs-and-delivery`） | A–I | ✅ merged #10（archived） |
 | 11 | K | 视频字幕与画面安全区 | `video-caption-layout`（分支 `change/video-caption-layout`，PR #12，`243261c`） | I | merged · archived |
-| 12 | L | 每关一段视频讲解 | `stage-videos`（分支 `change/stage-videos`） | I, K | in progress |
+| 12 | L | 每关一段视频讲解 | `stage-videos`（分支 `change/stage-videos`，PR #14，`b9d55df`） | I, K | merged · archived |
 
 ### A — 项目骨架
 
@@ -203,3 +203,4 @@
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · K squash merge 为 243261c；自动部署没有触发，用户手动部署后线上验证通过（两段视频为新文件、前端包含视频下方字幕、冒烟检查 6 步通过）；OpenSpec 归档为 `2026-11-12-video-caption-layout`。A–K 全部完成，计划状态改为 completed
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · v6：用户要求每关至少一段视频，新增 L（第 1、7 题）；OpenSpec `stage-videos` 待评审
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · 用户确认 L 方案"可以，直接开始"。实现完成：q01 51.79 秒 / 0.88 MB，q07 61.06 秒 / 1.12 MB，安全区检查通过；测试后端 307、前端 193 全部通过；浏览器实跑两段视频
+- 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · L squash merge 为 b9d55df，Render 自动部署成功；线上 4 段视频都在（q01 883,069 / q07 1,120,955 字节），第 1、7 题解析返回视频地址，第 2 题为空，冒烟检查通过；OpenSpec 归档为 `2026-11-12-stage-videos`。A–L 全部完成，计划状态改为 completed
