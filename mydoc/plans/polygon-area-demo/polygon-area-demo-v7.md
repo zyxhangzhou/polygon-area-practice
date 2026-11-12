@@ -1,6 +1,6 @@
 # 多边形面积练习 Demo — v7
 
-- Status: confirmed
+- Status: completed
 - Supersedes: v6
 - Date: 2026-11-12
 - Session: fab477d6-36b6-4a67-8f33-b1ddf1cee503
@@ -41,7 +41,7 @@
 | 10 | J | 文档与交付 | `docs-and-delivery`（已归档 `2026-11-12-docs-and-delivery`） | A–I | ✅ merged #10（archived） |
 | 11 | K | 视频字幕与画面安全区 | `video-caption-layout`（分支 `change/video-caption-layout`，PR #12，`243261c`） | I | merged · archived |
 | 12 | L | 每关一段视频讲解 | `stage-videos`（分支 `change/stage-videos`，PR #14，`b9d55df`） | I, K | merged · archived |
-| 13 | M | 图文解析重点标记 | `explanation-highlights`（分支 `change/explanation-highlights`） | E | in progress |
+| 13 | M | 图文解析重点标记 | `explanation-highlights`（分支 `change/explanation-highlights`，PR #16，`b6d7083`） | E | merged · archived |
 
 ### A — 项目骨架
 
@@ -213,3 +213,4 @@
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · L squash merge 为 b9d55df，Render 自动部署成功；线上 4 段视频都在（q01 883,069 / q07 1,120,955 字节），第 1、7 题解析返回视频地址，第 2 题为空，冒烟检查通过；OpenSpec 归档为 `2026-11-12-stage-videos`。A–L 全部完成，计划状态改为 completed
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · v7：用户要求解析重点加底色，新增 M；预览图已发给用户，OpenSpec `explanation-highlights` 待评审
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · 用户确认 M 方案"认可，可以继续"。实现完成：12 题加标记并通过校验；测试后端 334、前端 208 全部通过；浏览器实跑桌面、手机、总结页
+- 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · M squash merge 为 b6d7083，Render 自动部署成功；线上第 4 题解析接口返回带标记的文字，浏览器中 6 处标记与图例正确、没有花括号，冒烟检查通过；OpenSpec 归档为 `2026-11-12-explanation-highlights`。A–M 全部完成，计划状态改为 completed
