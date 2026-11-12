@@ -39,7 +39,7 @@
 | 7 | G | 首次上线 Render | `deploy-render`（已归档 `2026-11-12-deploy-render`） | E | ✅ merged #7（archived） |
 | 8 | H | 图形小镇与圆圆 | `town-and-companion`（已归档 `2026-11-12-town-and-companion`） | E | ✅ merged #8（archived） |
 | 9 | I | 视频解析 | `video-explanations`（已归档 `2026-11-12-video-explanations`） | E | ✅ merged #9（archived） |
-| 10 | J | 文档与交付 | `docs-and-delivery`（分支 `change/docs-and-delivery`，PR #10） | A–I | PR open（待补投入时间与 AI 费用） |
+| 10 | J | 文档与交付 | `docs-and-delivery`（分支 `change/docs-and-delivery`，PR #10） | A–I | PR open |
 
 ### A — 项目骨架
 
