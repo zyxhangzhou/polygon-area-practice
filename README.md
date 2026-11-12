@@ -4,7 +4,7 @@
 
 > 🚧 开发中。项目大纲见 [docs/project-outline.md](docs/project-outline.md)，题面见 [docs/assignment/](docs/assignment/assignment.md)，拆分计划见 [mydoc/plans/polygon-area-demo/](mydoc/plans/polygon-area-demo/README.md)。
 >
-> 线上地址：（首次部署后填写）。部署、看日志、回滚与已知限制见 [docs/deploy.md](docs/deploy.md)。
+> 线上地址：<https://polygon-area-practice.onrender.com>（免费实例闲置后会休眠，首次打开约需 30–60 秒）。部署、看日志、回滚与已知限制见 [docs/deploy.md](docs/deploy.md)。
 
 ## 快速开始
 
