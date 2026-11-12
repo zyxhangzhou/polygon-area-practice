@@ -47,5 +47,6 @@
   - `HomePage`、`PracticePage`（反馈和建筑面板）、`SummaryPage`（顶部全景）、`HistoryPage`（样式）；
   - `index.css`：重写为视觉稿的设计 token。
 - 后端不改：阶段与点亮所需的数据（`solvedCount`、`lit`、`stageLit`、`outcome`、`mistakeHint`）已经由 D 提供。
-- 不加新依赖：动画用 CSS 实现（见 design D3）。
+- 动画用 CSS 实现，不引入动画库（design D3）。
+- 新依赖：`@fontsource/noto-serif-sc`，自托管标题字体，不依赖外部字体服务（design D7）。
 - 不在范围内：音效、3D、视频解析（I）。
