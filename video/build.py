@@ -352,19 +352,19 @@ def q10(params: dict) -> tuple[Video, float]:
             c.polygon(roof_pts(lift), outline=CLAY, width=3)
         t = labels
         if t > 0:
-            c.text(((ox + x1) / 2, oy + 34), f"宽 {n(width)} cm", size=26, color=mix(CARD, INK, t), anchor="mm")
-            c.text((x1 + 14, (eave + oy) / 2), f"墙高 {n(wall)} cm", size=26, color=mix(CARD, INK, t), anchor="lm")
+            c.text(((ox + x1) / 2, oy + 34), f"长 {n(width)} cm", size=26, color=mix(CARD, INK, t), anchor="mm")
+            c.text((x1 + 14, (eave + oy) / 2), f"宽 {n(wall)} cm", size=26, color=mix(CARD, INK, t), anchor="lm")
             ry = (apex[1] + eave) / 2 - lift
             c.dashed((apex[0], apex[1] - lift), (apex[0], eave - lift), mix(CARD, CLAY, t), width=2)
             # 放在屋顶右侧，不压在斜边上
-            c.text((x1 + 14, ry), f"屋顶高 {n(roof)} cm", size=24, color=mix(CARD, CLAY_TEXT, t), anchor="lm")
+            c.text((x1 + 14, ry), f"高 {n(roof)} cm", size=24, color=mix(CARD, CLAY_TEXT, t), anchor="lm")
 
     def split_line(c: Canvas, t: float):
         if t > 0:
             c.dashed((ox - 20, eave), (x1 + 20, eave), GOLD_LINE, width=3, progress=t)
 
-    L1 = (f"长方形：{n(width)} × {n(wall)}", f"= {n(rect_area)} cm²")
-    L2 = (f"三角形：{n(width)} × {n(roof)} ÷ 2", f"= {n(tri_area)} cm²")
+    L1 = (f"长方形：长 × 宽 = {n(width)} × {n(wall)}", f"= {n(rect_area)} cm²")
+    L2 = (f"三角形：底 × 高 ÷ 2 = {n(width)} × {n(roof)} ÷ 2", f"= {n(tri_area)} cm²")
     L3 = ("合起来", f"{n(rect_area)} + {n(tri_area)} = {n(total)} cm²")
 
     def formulas(c: Canvas, a: float, b: float, d: float):
@@ -375,7 +375,7 @@ def q10(params: dict) -> tuple[Video, float]:
     lift = 34
     shots = [
         Shot(
-            f"广场上有一个小房子造型：下面是长方形，上面是三角形。宽{n(width)}厘米，墙高{n(wall)}厘米，屋顶高{n(roof)}厘米。",
+            f"广场上有一个小房子造型：下面是长{n(width)}厘米、宽{n(wall)}厘米的长方形，上面是底{n(width)}厘米、高{n(roof)}厘米的三角形屋顶。",
             lambda c, p: house(c, p=phase(p, 0, 0.5), labels=phase(p, 0.45, 0.8)),
         ),
         Shot(
@@ -387,7 +387,7 @@ def q10(params: dict) -> tuple[Video, float]:
             lambda c, p: house(c, lift=lift * phase(p, 0.1, 0.6), tint=phase(p, 0.3, 0.8)),
         ),
         Shot(
-            f"长方形的面积：{n(width)}乘{n(wall)}，等于{n(rect_area)}平方厘米。",
+            f"长方形的面积：长乘宽，{n(width)}乘{n(wall)}，等于{n(rect_area)}平方厘米。",
             lambda c, p: (house(c, lift=lift, tint=1), formulas(c, phase(p, 0.1, 0.5), 0, 0)),
         ),
         Shot(
