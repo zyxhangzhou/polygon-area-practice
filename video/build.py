@@ -1,7 +1,7 @@
-"""生成第 4、10 题的视频讲解（video-explanations，design D1、D2）。
+"""生成第 1、4、7、10 题的视频讲解（video-explanations D1、D2；stage-videos D2、D3），每关一段。
 
 用法：
-    python video/build.py            # 两段都生成
+    python video/build.py            # 四段都生成
     python video/build.py q04        # 只生成一段
 
 步骤：逐句 TTS（edge-tts，晓晓）→ 读出每句时长 → Pillow 逐帧绘制（2 倍尺寸后缩小，抗锯齿）
@@ -210,6 +210,114 @@ def callout(c: Canvas, box, text: str, t: float, fill, color) -> None:
     c.text((box[0] + 24, (box[1] + box[3]) / 2), text, size=24, color=mix(fill, color, t), anchor="lm")
 
 
+# ---------------------------------------------------------------- 第 1 题：平行四边形（stage-videos D2）
+
+
+def q01(params: dict) -> tuple[Video, float]:
+    base, height = params["base"], params["height"]
+    area = base * height
+    s = 44  # 每厘米的像素
+    k = 3 * s  # 上边相对下边向右错开的距离
+    ox, oy = 110, 490  # 底边左端
+    top = oy - height * s
+    bx = ox + base * s  # 底边右端
+    para = [(ox, oy), (bx, oy), (bx + k, top), (ox + k, top)]
+    rest = [(ox + k, oy), (bx, oy), (bx + k, top), (ox + k, top)]  # 剪下三角形后剩下的部分
+    cut = [(ox, oy), (ox + k, oy), (ox + k, top)]  # 沿高剪下的直角三角形
+    rect = [(ox + k, top), (bx + k, top), (bx + k, oy), (ox + k, oy)]
+
+    def n(x: float) -> str:
+        return f"{x:g}"
+
+    def moved(t: float) -> list[Pt]:
+        return [(x + base * s * t, y) for x, y in cut]
+
+    def shape(c: Canvas, p: float = 1, tint: float = 0, lift: float = 0, slide: float = 0):
+        """lift：剪下的三角形高亮程度；slide：平移进度"""
+        fill = mix(MIST_SOFT, (205, 222, 230), tint)
+        if slide == 0 and lift == 0:
+            c.polygon(para, fill=mix(CARD, fill, phase(p, 0.3, 0.7)))
+            c.stroke_path(para, MIST, width=3, progress=phase(p, 0, 0.5))
+            return
+        c.polygon(rest, fill=fill, outline=MIST, width=3)
+        c.polygon(moved(slide), fill=mix(fill, GOLD_SOFT, lift), outline=mix(MIST, GOLD_LINE, lift), width=3)
+
+    def labels(c: Canvas, t: float = 1.0, as_rect: float = 0.0):
+        """底、高的标注最后画；拼成长方形后改为"长 = 底""宽 = 高" """
+        if t <= 0:
+            return
+        if as_rect < 1:
+            a = t * (1 - as_rect)
+            c.dashed((ox + k, top), (ox + k, oy), mix(CARD, CLAY, a), width=2)
+            c.right_angle((ox + k, oy), 14, 1, -1, mix(CARD, CLAY, a))
+            c.text(((ox + bx) / 2, oy + 34), f"底 {n(base)} cm", size=26, color=mix(CARD, INK, a), anchor="mm")
+            c.text((ox + k + 26, (top + oy) / 2), f"高 {n(height)} cm", size=26, color=mix(CARD, CLAY_TEXT, a), anchor="lm")
+        if as_rect > 0:
+            a = t * as_rect
+            c.text(((ox + bx) / 2 + k, oy + 34), f"长 = 底 = {n(base)} cm", size=26, color=mix(CARD, INK, a), anchor="mm")
+            # 剪下的三角形移走后，左侧空出来，"宽"标在长方形左边，不碰右侧的算式
+            c.text((ox + k - 14, (top + oy) / 2), f"宽 = 高 = {n(height)} cm", size=24, color=mix(CARD, CLAY_TEXT, a), anchor="rm")
+
+    F1 = ("长方形的面积 = 长 × 宽", "所以 平行四边形 = 底 × 高")
+    F2 = ("代入", f"{n(base)} × {n(height)} = {n(area)} cm²")
+
+    def formulas(c: Canvas, a: float, b: float):
+        formula_line(c, 180, F1[0], F1[1], a)
+        formula_line(c, 285, F2[0], F2[1], b, color=MIST)
+
+    def done(c: Canvas):
+        shape(c, tint=1, slide=1)
+        labels(c, as_rect=1)
+
+    shots = [
+        Shot(
+            f"面包店的招牌是一个平行四边形。底是{n(base)}厘米，高是{n(height)}厘米。",
+            lambda c, p: (shape(c, p), labels(c, phase(p, 0.45, 0.8))),
+        ),
+        Shot(
+            "平行四边形的面积怎么算呢？我们沿着这条高，把左边的直角三角形剪下来。",
+            lambda c, p: (shape(c, lift=phase(p, 0.3, 0.8)), labels(c)),
+        ),
+        Shot(
+            "把它平移到右边，正好拼成一个长方形。",
+            lambda c, p: (shape(c, lift=1 - phase(p, 0.75, 1), slide=phase(p, 0.1, 0.75)), labels(c)),
+        ),
+        Shot(
+            f"长方形的长，就是原来的底，{n(base)}厘米；宽，就是原来的高，{n(height)}厘米。",
+            lambda c, p: (shape(c, tint=phase(p, 0, 0.3), slide=1), labels(c, as_rect=phase(p, 0.1, 0.5))),
+        ),
+        Shot(
+            f"长方形的面积是长乘宽，所以平行四边形的面积是底乘高：{n(base)}乘{n(height)}，等于{n(area)}平方厘米。",
+            lambda c, p: (done(c), formulas(c, phase(p, 0.05, 0.4), phase(p, 0.55, 0.85))),
+        ),
+        Shot(
+            f"注意：平行四边形的面积就是底乘高，不用除以2。算成{n(area / 2)}就错了。",
+            lambda c, p: (
+                done(c),
+                formulas(c, 1, 1),
+                callout(c, (720, 395, 1190, 452), f"易错：不用 ÷ 2，算成 {n(area / 2)} 就错了", phase(p, 0.1, 0.4), CLAY_SOFT, CLAY_TEXT),
+            ),
+        ),
+        Shot(
+            "记住：平行四边形的面积，等于底乘高。",
+            lambda c, p: (
+                done(c),
+                formulas(c, 1, 1),
+                callout(c, (720, 395, 1190, 452), f"易错：不用 ÷ 2，算成 {n(area / 2)} 就错了", 1, CLAY_SOFT, CLAY_TEXT),
+                callout(c, (720, 470, 1190, 530), "平行四边形面积 = 底 × 高", phase(p, 0.1, 0.4), GOLD_SOFT, INK),
+            ),
+        ),
+    ]
+    return Video(
+        "q01",
+        "第 1 题 · 平行四边形的面积",
+        "剪一剪、移一移，平行四边形变成长方形",
+        shots,
+        lambda c: frame_chrome(c, "第 1 题 · 平行四边形的面积", "剪一剪、移一移，平行四边形变成长方形"),
+        poster_shot=2,
+    ), area
+
+
 # ---------------------------------------------------------------- 第 4 题：三角形
 
 
@@ -318,6 +426,137 @@ def q04(params: dict) -> tuple[Video, float]:
         "两个一样的三角形，能拼成一个平行四边形",
         shots,
         lambda c: frame_chrome(c, "第 4 题 · 三角形的面积", "两个一样的三角形，能拼成一个平行四边形"),
+        poster_shot=2,
+    ), area
+
+
+# ---------------------------------------------------------------- 第 7 题：梯形（stage-videos D3）
+
+
+def q07(params: dict) -> tuple[Video, float]:
+    upper, lower, height = params["top"], params["bottom"], params["height"]
+    total_base = upper + lower
+    para = total_base * height
+    area = para / 2
+    # 复制的梯形绕右腰中点旋转半圈。按实际旋转轨迹算过：s = 34 时顶点最高到 oy - 330，
+    # 加上下方"底 = 上底 + 下底"的标注最低到 oy + 92，正好在卡片内、安全区上方
+    s = 34
+    off = 1.5  # 上底左端相对下底左端向右错开（cm）
+    ox, oy = 140, 494
+    P = lambda x, y: (ox + x * s, oy - y * s)  # noqa: E731  题目坐标（cm）→ 画面坐标
+    trap = [P(0, 0), P(lower, 0), P(off + upper, height), P(off, height)]
+    M = lerp(trap[1], trap[2], 0.5)
+    top_y = oy - height * s
+
+    def n(x: float) -> str:
+        return f"{x:g}"
+
+    def copy_points(deg: float) -> list[Pt]:
+        return [rotate(pt, M, deg) for pt in trap]
+
+    def trapezoid(c: Canvas, p: float = 1, tint: float = 0):
+        c.polygon(trap, fill=mix(CARD, mix(MIST_SOFT, (205, 222, 230), tint), phase(p, 0.3, 0.7)))
+        c.stroke_path(trap, MIST, width=3, progress=phase(p, 0, 0.5))
+
+    def copy(c: Canvas, deg: float, alpha: float, fade_to: float = 1.0):
+        a = alpha * fade_to
+        c.polygon(copy_points(deg), fill=mix(CARD, GOLD_SOFT, a), outline=mix(CARD, GOLD_LINE, a), width=3)
+
+    def labels(c: Canvas, t: float = 1.0, copy_t: float = 0.0, sum_t: float = 0.0):
+        """原梯形的标注；copy_t：拼好后复制品的上底、下底；sum_t：拼成的平行四边形的底"""
+        if t > 0:
+            hx = ox + off * s
+            c.dashed((hx, top_y), (hx, oy), mix(CARD, CLAY, t), width=2)
+            c.right_angle((hx, oy), 12, 1, -1, mix(CARD, CLAY, t))
+            c.text((hx + 12, oy - height * s / 2), f"高 {n(height)} cm", size=22, color=mix(CARD, CLAY_TEXT, t), anchor="lm")
+            c.text(((trap[2][0] + trap[3][0]) / 2, top_y - 22), f"上底 {n(upper)} cm", size=22, color=mix(CARD, INK, t), anchor="mm")
+            c.text(((trap[0][0] + trap[1][0]) / 2, oy + 28), f"下底 {n(lower)} cm", size=22, color=mix(CARD, INK, t), anchor="mm")
+        if copy_t > 0:
+            cp = copy_points(180)  # 复制品：原下底到了上方右侧，原上底到了下方右侧
+            c.text(((cp[0][0] + cp[1][0]) / 2, top_y - 22), f"下底 {n(lower)} cm", size=22, color=mix(CARD, CLAY_TEXT, copy_t), anchor="mm")
+            c.text(((cp[2][0] + cp[3][0]) / 2, oy + 28), f"上底 {n(upper)} cm", size=22, color=mix(CARD, CLAY_TEXT, copy_t), anchor="mm")
+        if sum_t > 0:
+            x0, x1 = ox, ox + total_base * s
+            y = oy + 58
+            col = mix(CARD, MIST, sum_t)
+            c.d.line(c._p([(x0, y - 8), (x0, y), (x1, y), (x1, y - 8)]), fill=col, width=2 * SS)
+            c.text(((x0 + x1) / 2, y + 22), f"底 = {n(upper)} + {n(lower)} = {n(total_base)} cm", size=22, color=col, anchor="mm")
+
+    L1 = ("拼成的平行四边形：底 = 上底 + 下底", f"{n(upper)} + {n(lower)} = {n(total_base)} cm")
+    L2 = ("平行四边形的面积 = 底 × 高", f"{n(total_base)} × {n(height)} = {n(para)} cm²")
+    L3 = ("梯形是它的一半", f"{n(para)} ÷ 2 = {n(area)} cm²")
+
+    def formulas(c: Canvas, a: float, b: float, d: float):
+        formula_line(c, 170, L1[0], L1[1], a)
+        formula_line(c, 265, L2[0], L2[1], b)
+        formula_line(c, 360, L3[0], L3[1], d, color=MIST)
+
+    def joined(c: Canvas, fade_to: float = 1.0, tint: float = 0):
+        trapezoid(c, tint=tint)
+        copy(c, 180, 1, fade_to)
+        c.polygon(trap, outline=MIST, width=4 if tint else 3)
+
+    MISTAKE = (f"易错：{n(para)} 是平行四边形，别忘了 ÷ 2", "先算上底 + 下底，再乘高")
+    RULE = "梯形面积 =（上底 + 下底）× 高 ÷ 2"
+
+    shots = [
+        Shot(
+            f"小桥的侧板是一个梯形。上底是{n(upper)}厘米，下底是{n(lower)}厘米，高是{n(height)}厘米。",
+            lambda c, p: (trapezoid(c, p), labels(c, phase(p, 0.45, 0.8))),
+        ),
+        Shot(
+            "梯形的面积怎么算呢？我们先复制一个完全一样的梯形。",
+            lambda c, p: (trapezoid(c), copy(c, 0, phase(p, 0.3, 0.8)), c.polygon(trap, outline=MIST, width=3), labels(c)),
+        ),
+        Shot(
+            "把它旋转半圈，拼到旁边，就拼成了一个平行四边形。",
+            lambda c, p: (trapezoid(c), copy(c, 180 * phase(p, 0.1, 0.85), 1), c.polygon(trap, outline=MIST, width=3), labels(c)),
+        ),
+        Shot(
+            f"平行四边形的底，是梯形的上底加下底：{n(upper)}加{n(lower)}，等于{n(total_base)}厘米。高还是{n(height)}厘米。",
+            lambda c, p: (joined(c), labels(c, copy_t=phase(p, 0, 0.3), sum_t=phase(p, 0.35, 0.65)), formulas(c, phase(p, 0.4, 0.75), 0, 0)),
+        ),
+        Shot(
+            f"平行四边形的面积是底乘高，{n(total_base)}乘{n(height)}，等于{n(para)}平方厘米。",
+            lambda c, p: (joined(c), labels(c, copy_t=1, sum_t=1), formulas(c, 1, phase(p, 0.1, 0.5), 0)),
+        ),
+        Shot(
+            f"梯形正好是平行四边形的一半，所以{n(para)}除以2，等于{n(area)}平方厘米。",
+            lambda c, p: (
+                joined(c, fade_to=1 - 0.75 * phase(p, 0.1, 0.4), tint=phase(p, 0.1, 0.4)),
+                labels(c, copy_t=1 - 0.6 * phase(p, 0.1, 0.4), sum_t=1),
+                formulas(c, 1, 1, phase(p, 0.45, 0.8)),
+            ),
+        ),
+        Shot(
+            f"注意：{n(para)}是平行四边形的面积，别忘了除以2；上底和下底要先相加，再乘高。",
+            lambda c, p: (
+                joined(c, fade_to=0.25, tint=1),
+                labels(c, copy_t=0.4, sum_t=1),
+                formulas(c, 1, 1, 1),
+                callout(c, (720, 465, 1190, 512), MISTAKE[0], phase(p, 0.05, 0.3), CLAY_SOFT, CLAY_TEXT),
+                callout(c, (720, 525, 1190, 572), MISTAKE[1], phase(p, 0.5, 0.75), CLAY_SOFT, CLAY_TEXT),
+            ),
+        ),
+        Shot(
+            "记住：梯形的面积，等于上底加下底的和，乘高，再除以2。",
+            lambda c, p: (
+                joined(c, fade_to=0.25, tint=1),
+                labels(c, copy_t=0.4, sum_t=1),
+                formulas(c, 1, 1, 1),
+                callout(c, (720, 465, 1190, 512), MISTAKE[0], 1, CLAY_SOFT, CLAY_TEXT),
+                callout(c, (720, 525, 1190, 572), MISTAKE[1], 1 - phase(p, 0.05, 0.25), CLAY_SOFT, CLAY_TEXT)
+                if phase(p, 0.05, 0.25) < 1
+                else callout(c, (720, 525, 1190, 572), RULE, phase(p, 0.25, 0.5), GOLD_SOFT, INK),
+            ),
+        ),
+    ]
+    return Video(
+        "q07",
+        "第 7 题 · 梯形的面积",
+        "两个一样的梯形，能拼成一个平行四边形",
+        shots,
+        lambda c: frame_chrome(c, "第 7 题 · 梯形的面积", "两个一样的梯形，能拼成一个平行四边形"),
         poster_shot=2,
     ), area
 
@@ -553,8 +792,8 @@ def main(argv: list[str]) -> None:
     for f in (FONT_SANS, FONT_SANS_BOLD, FONT_SERIF):
         if not f.exists():
             raise SystemExit(f"缺少字体 {f.name}，见 video/README.md 的下载步骤")
-    wanted = argv or ["q04", "q10"]
-    makers = {"q04": (4, q04), "q10": (10, q10)}
+    wanted = argv or ["q01", "q04", "q07", "q10"]
+    makers = {"q01": (1, q01), "q04": (4, q04), "q07": (7, q07), "q10": (10, q10)}
     reports = []
     for key in wanted:
         qid, make = makers[key]

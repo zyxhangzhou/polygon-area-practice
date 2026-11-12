@@ -581,7 +581,7 @@ describe('视频讲解（I）', () => {
   });
 
   it('没有视频的题只显示"看图文解析"', async () => {
-    open(1, sessionView({ 1: 'wrong' }));
+    open(2, sessionView({ 2: 'wrong' }));
     await screen.findByText('这道题上次没答对，再试试吧。');
     expect(screen.queryByRole('button', { name: '看视频讲解' })).not.toBeInTheDocument();
   });

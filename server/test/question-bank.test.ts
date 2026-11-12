@@ -75,12 +75,14 @@ describe('解析内容覆盖', () => {
     }
   });
 
-  it('第 4、10 题带视频地址', async () => {
+  it('第 1、4、7、10 题带视频地址，每关至少一题', async () => {
     const rows = await db
-      .select({ id: questions.id })
+      .select({ id: questions.id, stageId: questions.stageId, videoUrl: questions.videoUrl })
       .from(questions)
       .where(isNotNull(questions.videoUrl));
-    expect(rows.map((r) => r.id)).toEqual(expect.arrayContaining([4, 10]));
+    expect(rows.map((r) => r.id)).toEqual(expect.arrayContaining([1, 4, 7, 10]));
+    expect(new Set(rows.map((r) => r.stageId))).toEqual(new Set([1, 2, 3, 4]));
+    for (const r of rows) expect(r.videoUrl).toBe(`/videos/q${String(r.id).padStart(2, '0')}.mp4`);
   });
 
   it('第 4 题的常见错误答案包含 60 并附提示', async () => {

@@ -1,3 +1,5 @@
+> ⚠️ Superseded by [v6](polygon-area-demo-v6.md) — 新增 L（每关一段视频讲解）。
+
 # 多边形面积练习 Demo — v5
 
 - Status: completed
