@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent, type Ref } from 'react';
 import type { QuestionDetail, SessionView } from '../api/types';
+import { Bear } from '../companion/Bear';
+import { feedbackLine, type Line } from '../companion/lines';
 import { usePracticeState, useStore } from '../practice/context';
 import { Figure } from '../practice/Figure';
 import { ExplanationPanel } from '../practice/ExplanationPanel';
@@ -7,6 +9,9 @@ import { LoadFailed, useLoad } from '../practice/load';
 import type { Feedback } from '../practice/store';
 import { navigate } from '../router';
 import { storage } from '../storage';
+import { Building, buildingState, statusText } from '../town/Building';
+import { KINDS_IN_ORDER } from '../town/buildings';
+import { Brand } from '../ui/Brand';
 
 const STATUS_TEXT = {
   unanswered: '未作答',
@@ -69,7 +74,10 @@ export function PracticePage({ qid }: { qid: number | null }) {
   const openable = isOpenable(session, qid);
   return (
     <main className="page practice">
-      <Progress session={session} qid={openable ? qid : null} />
+      <div className="topbar">
+        <Brand />
+        <Progress session={session} qid={openable ? qid : null} />
+      </div>
       <RetryPanel />
       <FinishPanel session={session} />
       {openable ? (
@@ -122,14 +130,14 @@ function Progress({ session, qid }: { session: SessionView; qid: number | null }
       <ol className="stages">
         {session.stages.map((stage, i) => (
           <li key={stage.stageId} className={`stage ${stage.unlocked ? '' : 'locked'}`}>
-            <span className="stage-name">
-              第 {i + 1} 关 {stage.name} · {stage.buildingName}
-              <span className="stage-state">
-                {stage.lit
-                  ? '已点亮'
-                  : stage.unlocked
-                    ? `施工中 ${stage.solvedCount}/${stage.total}`
-                    : '未解锁'}
+            <span
+              className="stage-name"
+              title={`第 ${i + 1} 关 ${stage.name} · ${stage.buildingName}`}
+            >
+              {stage.buildingName}
+              <span className="visually-hidden">
+                ，第 {i + 1} 关 {stage.name}，
+                {statusText(buildingState(stage).status, stage.solvedCount, stage.total)}
               </span>
             </span>
             <span className="chips">
@@ -217,8 +225,28 @@ function QuestionPanel({ session, qid }: { session: SessionView; qid: number }) 
     store.clearFeedback();
   }, [store, qid]);
 
-  const status = session.questions.find((q) => q.questionId === qid)!.status;
+  const question = session.questions.find((q) => q.questionId === qid)!;
+  const status = question.status;
   const feedback = state.feedback?.questionId === qid ? state.feedback : null;
+
+  // 图形提示：后端判为答错后出现；"再试一次"时保留，做对后消失；换题或刷新（重新挂载）时不显示
+  const [hint, setHint] = useState(false);
+  const panelRef = useRef<HTMLElement>(null);
+  const companionRef = useRef<HTMLElement>(null);
+  // 窄屏时圆圆和建筑排在题目下面：出现新的判题结果时把它们滚到可见处，免得错过反馈和建造
+  const resultShown = feedback?.kind === 'result' ? feedback : null;
+  useEffect(() => {
+    if (!resultShown || !window.matchMedia?.('(max-width: 900px)').matches) return;
+    // 答对：看建筑长高；答错：只露出圆圆的话，尽量让上方的图形提示留在屏幕上
+    const target = resultShown.result.correct ? panelRef.current : companionRef.current;
+    target?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  }, [resultShown]);
+
+  const [seenFeedback, setSeenFeedback] = useState(feedback);
+  if (feedback !== seenFeedback) {
+    setSeenFeedback(feedback);
+    if (feedback) setHint(feedback.kind === 'result' && !feedback.result.correct);
+  }
   const invalid = state.invalid?.questionId === qid ? state.invalid.message : null;
   const retrying = state.pendingRetry;
   const locked = state.busy || retrying !== null;
@@ -244,116 +272,200 @@ function QuestionPanel({ session, qid }: { session: SessionView; qid: number }) 
   if (failed) return <LoadFailed what="题目" onRetry={reload} />;
   if (!detail) return <p>正在读取题目…</p>;
 
+  const stageIndex = session.stages.findIndex((st) => st.stageId === question.stageId);
+  const stage = session.stages[stageIndex]!;
+
   return (
-    <article className="question">
-      <Figure figure={detail.figure} />
-      <p className="prompt">{detail.prompt}</p>
+    <div className="practice-layout">
+      <article className="question">
+        <div className="question-meta">
+          <strong>
+            第 {stageIndex + 1} 关 · {stage.name} · 第 {question.position} 题
+          </strong>
+        </div>
+        <Figure figure={detail.figure} hint={hint && status !== 'solved'} />
+        <p className="prompt">{detail.prompt}</p>
 
-      {feedback && <FeedbackView feedback={feedback} session={session} onTryAgain={tryAgain} />}
-
-      {status === 'solved' ? (
-        !feedback && <p className="solved">这道题已经做对了</p>
-      ) : (
-        <form onSubmit={submit} className="answer-form">
-          <label>
-            答案
-            <input
-              ref={inputRef}
-              type="text"
-              inputMode="decimal"
-              autoComplete="off"
-              value={
-                retrying?.type === 'attempt' && retrying.questionId === qid
-                  ? retrying.answer
-                  : answer
-              }
-              readOnly={retrying !== null}
-              onChange={(e) => setAnswer(e.target.value)}
-            />
-            <span className="unit">{detail.unit}</span>
-          </label>
-          <button type="submit" className="primary" disabled={locked}>
-            提交
-          </button>
-          {(localError ?? invalid) && (
-            <p role="alert" className="invalid">
-              {localError ?? invalid}
-            </p>
-          )}
-          {status === 'wrong' && !feedback && <p className="hint">这道题上次没答对，再试试吧。</p>}
-        </form>
-      )}
-
-      {!retrying && state.notice && (
-        <p role="alert" className="notice">
-          {state.notice}
-        </p>
-      )}
-
-      <div className="actions">
-        {canExplain && (
-          <button disabled={retrying !== null} onClick={() => setShowExplanation((v) => !v)}>
-            {showExplanation ? '收起图文解析' : '看图文解析'}
-          </button>
+        {status === 'solved' ? (
+          !feedback && <p className="solved">这道题已经做对了</p>
+        ) : (
+          <form onSubmit={submit} className="answer-form">
+            <label className={`answer-field ${hint ? 'wrong' : ''}`}>
+              答案
+              <input
+                ref={inputRef}
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                value={
+                  retrying?.type === 'attempt' && retrying.questionId === qid
+                    ? retrying.answer
+                    : answer
+                }
+                readOnly={retrying !== null}
+                onChange={(e) => {
+                  // 开始改答案：收起上一次的判题结果，回到"提交"（图形提示保留）
+                  if (feedback) store.clearFeedback();
+                  setAnswer(e.target.value);
+                }}
+              />
+              <span className="unit">{detail.unit}</span>
+            </label>
+            {feedback?.kind === 'result' && !feedback.result.correct ? (
+              <button type="button" className="primary" onClick={tryAgain}>
+                再试一次
+              </button>
+            ) : (
+              <button type="submit" className="primary" disabled={locked}>
+                提交
+              </button>
+            )}
+            {(localError ?? invalid) && (
+              <p role="alert" className="invalid">
+                {localError ?? invalid}
+              </p>
+            )}
+          </form>
         )}
-        {status !== 'solved' && (
-          <button disabled={locked} onClick={() => store.skip(qid)}>
-            先跳过
-          </button>
+
+        {!retrying && state.notice && (
+          <p role="alert" className="notice">
+            {state.notice}
+          </p>
         )}
-        {status === 'solved' &&
-          session.currentQuestionId !== null &&
-          session.currentQuestionId !== qid && (
-            <button
-              className="primary"
-              disabled={retrying !== null}
-              onClick={() => navigate(`/practice/${session.currentQuestionId}`)}
-            >
-              {feedback?.kind === 'result' ? '下一题' : '去当前题'}
+
+        <div className="actions">
+          {canExplain && (
+            <button disabled={retrying !== null} onClick={() => setShowExplanation((v) => !v)}>
+              {showExplanation ? '收起图文解析' : '看图文解析'}
             </button>
           )}
-      </div>
+          {status !== 'solved' && (
+            <button className="link" disabled={locked} onClick={() => store.skip(qid)}>
+              先跳过
+            </button>
+          )}
+          {status === 'solved' &&
+            session.currentQuestionId !== null &&
+            session.currentQuestionId !== qid && (
+              <button
+                className="primary"
+                disabled={retrying !== null}
+                onClick={() => navigate(`/practice/${session.currentQuestionId}`)}
+              >
+                {feedback?.kind === 'result' ? '下一题' : '去当前题'}
+              </button>
+            )}
+        </div>
 
-      {showExplanation && canExplain && <ExplanationPanel qid={qid} />}
-    </article>
+        {showExplanation && canExplain && <ExplanationPanel qid={qid} />}
+      </article>
+
+      <aside className="practice-aside">
+        <CompanionCard
+          ref={companionRef}
+          line={companionLine(feedback, status, stage.buildingName)}
+        />
+        <StagePanel ref={panelRef} session={session} stageIndex={stageIndex} />
+      </aside>
+    </div>
   );
 }
 
-function FeedbackView({
-  feedback,
-  session,
-  onTryAgain,
-}: {
-  feedback: Feedback;
-  session: SessionView;
-  onTryAgain: () => void;
-}) {
-  if (feedback.kind === 'already-solved') {
-    return (
-      <p role="status" className="feedback">
-        这道题已经做对了
-      </p>
-    );
+/** 圆圆此刻说的话：有判题结果时按结果，否则按题目状态（companion-feedback） */
+function companionLine(
+  feedback: Feedback | null,
+  status: SessionView['questions'][number]['status'],
+  buildingName: string,
+): Line {
+  if (feedback?.kind === 'result') return feedbackLine(feedback.result, buildingName);
+  if (feedback?.kind === 'already-solved' || status === 'solved') {
+    return {
+      mood: 'happy',
+      kicker: '已完成',
+      title: '这一题完成了',
+      text: '可以看看解析，或者去当前题。',
+    };
   }
-  const { result } = feedback;
-  if (!result.correct) {
-    return (
-      <div role="status" className="feedback wrong">
-        <p>{result.mistakeHint ?? '还不对哦，再想想？也可以先看看图文解析。'}</p>
-        <button onClick={onTryAgain}>再试一次</button>
-      </div>
-    );
+  if (status === 'wrong') {
+    return {
+      mood: 'think',
+      kicker: '再来一次',
+      title: '换个角度想想',
+      text: '这道题上次没答对，再试试吧。',
+    };
   }
-  const q = session.questions.find((x) => x.questionId === result.questionId);
-  const stage = session.stages.find((s) => s.stageId === q?.stageId);
+  if (status === 'skipped') {
+    return {
+      mood: 'idle',
+      kicker: '回来了',
+      title: '再试一次这道题',
+      text: '之前跳过了它，现在可以慢慢来。',
+    };
+  }
+  return {
+    mood: 'idle',
+    kicker: '圆圆',
+    title: '算好后填上数字',
+    text: '单位已经写好了，只填数字就行。',
+  };
+}
+
+function CompanionCard({ ref, line }: { ref?: Ref<HTMLElement>; line: Line }) {
   return (
-    <div role="status" className="feedback correct">
-      <p>
-        {result.outcome === 'corrected'
-          ? '改正成功！看懂了再做对，这才是真本事！'
-          : '答对了，一次就做对，真棒！'}
+    <section
+      ref={ref}
+      className={`card companion-card ${line.mood === 'cheer' ? 'cheer' : ''}`}
+      aria-label="圆圆的话"
+    >
+      <div className="companion" role="status">
+        <div className="companion-avatar">
+          <Bear key={line.mood} mood={line.mood} />
+        </div>
+        <div className="companion-words">
+          <span className="companion-kicker">{line.kicker}</span>
+          <p className="companion-title">{line.title}</p>
+          <p className="companion-text">{line.text}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** 当前关卡的建筑：常驻在答题页，作答后随后端进度长高（town-display） */
+function StagePanel({
+  ref,
+  session,
+  stageIndex,
+}: {
+  ref?: Ref<HTMLElement>;
+  session: SessionView;
+  stageIndex: number;
+}) {
+  const stage = session.stages[stageIndex]!;
+  const { status, level } = buildingState(stage);
+  const left = stage.total - stage.solvedCount;
+  return (
+    <section
+      ref={ref}
+      className={`card stage-panel is-${status}`}
+      aria-label={`${stage.buildingName}的进度`}
+    >
+      <div className="stage-panel-head">
+        <h2>{stage.buildingName}</h2>
+        <span className="stage-panel-state">{statusText(status, level, stage.total)}</span>
+      </div>
+      <Building
+        kind={KINDS_IN_ORDER[stageIndex] ?? 'plaza'}
+        name={stage.buildingName}
+        status={status}
+        level={level}
+      />
+      <p className="stage-panel-note">
+        {status === 'lit'
+          ? '这一关的三道题都做对了，建筑已经点亮。'
+          : `再做对 ${left} 道${stage.name}的题，${stage.buildingName}就能点亮。`}
       </p>
-      {result.stageLit && stage && <p className="lit">{stage.buildingName}点亮了！</p>}
-    </div>
+    </section>
   );
 }

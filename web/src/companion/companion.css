@@ -1,0 +1,132 @@
+/* 圆圆（design D4）：待机呼吸、眨眼；状态切换时的轻微动作 */
+
+.bear {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.bear .bear-body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.bear.idle .bear-body {
+  animation: bear-breathe 4s ease-in-out infinite;
+}
+@keyframes bear-breathe {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: scaleY(1.015) translateY(-1px);
+  }
+}
+.bear.idle .bear-eyes,
+.bear.think .bear-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bear-blink 5s infinite;
+}
+@keyframes bear-blink {
+  0%,
+  94%,
+  100% {
+    transform: none;
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}
+.bear.happy .bear-body,
+.bear.cheer .bear-body {
+  animation: bear-hop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes bear-hop {
+  0% {
+    transform: none;
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: none;
+  }
+}
+.bear.proud .bear-thumb {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: bear-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.bear.cheer .bear-sparkles {
+  animation: bear-twinkle 1.2s ease-out both;
+}
+@keyframes bear-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes bear-twinkle {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.bear.think .bear-head {
+  transition: transform 300ms ease;
+}
+
+/* 圆圆的话：头像 + 标题 + 一句话 */
+.companion {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.companion-avatar {
+  flex: none;
+  width: 88px;
+}
+.companion-words {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.companion-kicker {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--clay-text);
+}
+.companion-title {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0;
+}
+.companion-text {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--ink-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bear,
+  .bear * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

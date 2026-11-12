@@ -139,8 +139,10 @@ describe('答题页', () => {
     );
     await screen.findByRole('textbox');
     await answer('4');
-    expect(await screen.findByText(/改正成功/)).toBeInTheDocument();
-    expect(screen.getByText('面包店点亮了！')).toBeInTheDocument();
+    // 圆圆举手庆祝，话里同时肯定改正与点亮（companion-feedback）
+    expect(await screen.findByText('面包店点亮了')).toBeInTheDocument();
+    expect(screen.getByText(/改正之后/)).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '圆圆：举手庆祝' })).toBeInTheDocument();
   });
 
   it('连点提交：只发出一次请求', async () => {
@@ -438,5 +440,74 @@ describe('读取失败与等待重试', () => {
     await userEvent.click(screen.getByRole('button', { name: '再提交一次' }));
     await waitFor(() => expect(window.location.pathname).toBe('/summary'));
     expect(api.writes().map((c) => c.body)).toEqual([{ endedEarly: false }, { endedEarly: false }]);
+  });
+});
+
+describe('图形小镇与圆圆（H）', () => {
+  const stage2 = (extra: Record<number, 'solved' | 'wrong'> = {}) =>
+    sessionView({ 1: 'solved', 2: 'solved', 3: 'solved', ...extra });
+
+  it('答错：圆圆歪头思考，说常见错误提示；图形上出现辅助提示，改答案后仍保留', async () => {
+    const { api } = open(4, stage2());
+    api.on(
+      'POST',
+      /\/attempts$/,
+      json(
+        201,
+        attemptResponse(
+          { questionId: 4, correct: false, mistakeHint: '别忘了 ÷ 2' },
+          stage2({ 4: 'wrong' }),
+        ),
+      ),
+    );
+    await screen.findByRole('textbox');
+    expect(screen.getByRole('img', { name: '圆圆' })).toBeInTheDocument();
+    await answer('60');
+    expect(await screen.findByText('别忘了 ÷ 2')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '圆圆：歪头思考' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /^题目图形。提示：/ })).toBeInTheDocument();
+    // 直接改答案：回到"提交"，提示保留
+    await userEvent.type(input(), '0');
+    expect(screen.getByRole('button', { name: '提交' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /^题目图形。提示：/ })).toBeInTheDocument();
+  });
+
+  it('做对后提示消失；建筑面板长出一层（只有新的一层带动画）', async () => {
+    const { api } = open(4, stage2({ 4: 'wrong' }));
+    api.on('POST', /\/attempts$/, (_b, n) =>
+      n === 0
+        ? json(201, attemptResponse({ questionId: 4, correct: false }, stage2({ 4: 'wrong' })))
+        : json(
+            201,
+            attemptResponse(
+              { questionId: 4, correct: true, outcome: 'corrected', attemptNo: 2 },
+              stage2({ 4: 'solved' }),
+            ),
+          ),
+    );
+    await screen.findByRole('textbox');
+    const panel = screen.getByRole('region', { name: '帐篷营地的进度' });
+    // 进入页面：直接显示当前阶段，没有动画
+    expect(within(panel).getByRole('img', { name: '帐篷营地：施工中 0/3' })).toBeInTheDocument();
+    expect(panel.querySelector('.entering')).toBeNull();
+
+    await answer('60');
+    await screen.findByRole('img', { name: /^题目图形。提示：/ });
+    await answer('30');
+    expect(await screen.findByText('改正成功')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '圆圆：竖起大拇指' })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /^题目图形。提示：/ })).not.toBeInTheDocument();
+    expect(within(panel).getByRole('img', { name: '帐篷营地：施工中 1/3' })).toBeInTheDocument();
+    expect(
+      [...panel.querySelectorAll('.entering')].map((g) => g.getAttribute('data-layer')),
+    ).toEqual(['layer1']);
+  });
+
+  it('已点亮的关卡：打开页面直接显示点亮，不播放动画', async () => {
+    open(2, sessionView({ 1: 'solved', 2: 'solved', 3: 'solved' }));
+    await screen.findByText('这道题已经做对了');
+    const panel = screen.getByRole('region', { name: '面包店的进度' });
+    expect(within(panel).getByRole('img', { name: '面包店：已点亮' })).toBeInTheDocument();
+    expect(panel.querySelector('.entering, .lighting')).toBeNull();
   });
 });

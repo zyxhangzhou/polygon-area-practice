@@ -3,6 +3,7 @@ import { request } from '../api/api';
 import type { HistoryResponse } from '../api/types';
 import { LoadFailed, useLoad } from '../practice/load';
 import { navigate } from '../router';
+import { Brand } from '../ui/Brand';
 import { storage } from '../storage';
 
 const formatTime = (iso: string) =>
@@ -46,6 +47,9 @@ export function HistoryPage() {
   const total = data.sessions.length;
   return (
     <main className="page history">
+      <div className="topbar">
+        <Brand sub="练习记录" />
+      </div>
       <h1>练习记录</h1>
       {total === 0 ? (
         <p className="empty">还没有练习记录。</p>
@@ -76,7 +80,9 @@ export function HistoryPage() {
           ))}
         </ol>
       )}
-      <button onClick={() => navigate('/')}>回到首页</button>
+      <div className="actions">
+        <button onClick={() => navigate('/')}>回到首页</button>
+      </div>
     </main>
   );
 }

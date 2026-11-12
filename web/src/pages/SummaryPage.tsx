@@ -10,6 +10,10 @@ import { PracticeStore } from '../practice/store';
 import { navigate } from '../router';
 import { storage } from '../storage';
 import { buildAdvice } from '../summary/advice';
+import { Bear, type Mood } from '../companion/Bear';
+import { Building, buildingState } from '../town/Building';
+import { KINDS_IN_ORDER } from '../town/buildings';
+import { Brand } from '../ui/Brand';
 
 type SummaryQuestion = SummaryResponse['questions'][number];
 
@@ -125,20 +129,61 @@ function SummaryContent({
     if (!res.ok) setError(res.message);
   }
 
+  const litCount = summary.stages.filter((st) => st.lit).length;
+  const headline =
+    litCount === summary.stages.length
+      ? '整座小镇都亮起来了'
+      : litCount > 0
+        ? `这次点亮了 ${litCount} 座建筑`
+        : '小镇还在建设中';
+  const mood: Mood =
+    counts.firstTry === counts.total ? 'cheer' : counts.notYet === 0 ? 'proud' : 'idle';
+
   return (
     <main className="page summary">
-      <h1>学习总结</h1>
-      <p className="session-date">
-        {new Date(summary.session.startedAt).toLocaleString('zh-CN', {
-          dateStyle: 'medium',
-          timeStyle: 'short',
-        })}{' '}
-        开始的练习
-      </p>
-      <p className="encouragement">{advice.encouragement}</p>
-      {summary.session.endedEarly && (
-        <p className="ended-early">这次练习提前结束了，没做的题计入"需回顾"。</p>
-      )}
+      <div className="topbar">
+        <Brand sub="学习总结" />
+      </div>
+
+      <section className="panorama" aria-label="小镇全景">
+        <p className="session-date">
+          学习总结 ·{' '}
+          {new Date(summary.session.startedAt).toLocaleString('zh-CN', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          })}{' '}
+          开始的练习
+        </p>
+        <h1>{headline}</h1>
+        <div className="panorama-row">
+          {summary.stages.map((st, i) => {
+            const { status, level } = buildingState(st);
+            return (
+              <Building
+                key={st.stageId}
+                kind={KINDS_IN_ORDER[i] ?? 'plaza'}
+                name={st.buildingName}
+                status={status}
+                level={level}
+              />
+            );
+          })}
+        </div>
+      </section>
+
+      <div className="summary-top">
+        <div className="card companion">
+          <div className="companion-avatar">
+            <Bear mood={mood} />
+          </div>
+          <div className="companion-words">
+            <p className="encouragement companion-title">{advice.encouragement}</p>
+            {summary.session.endedEarly && (
+              <p className="ended-early">这次练习提前结束了，没做的题计入"需回顾"。</p>
+            )}
+          </div>
+        </div>
+      </div>
 
       <section className="stats" aria-label="统计">
         <div className="stat">
@@ -155,7 +200,7 @@ function SummaryContent({
         </p>
       </section>
 
-      <section aria-label="建议">
+      <section aria-label="建议" className="card">
         <h2>下一步可以这样做</h2>
         <ul className="suggestions">
           {advice.suggestions.map((s) => (

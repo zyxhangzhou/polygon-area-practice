@@ -1,3 +1,5 @@
+> ⚠️ Superseded by [v4](polygon-area-demo-v4.md) — H 改为要求精致视觉与动画，I 降为视时间而定。
+
 # 多边形面积练习 Demo — v3
 
 - Status: confirmed

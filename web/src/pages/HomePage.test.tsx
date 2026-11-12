@@ -104,3 +104,86 @@ describe('首页', () => {
     expect(screen.getByRole('button', { name: '重新连接' })).toBeInTheDocument();
   });
 });
+
+describe('首页的小镇地图（H）', () => {
+  it('没有会话：四块空地，第 1 关标"从这里开始"', async () => {
+    mockApi();
+    renderApp();
+    const map = await screen.findByRole('region', { name: '小镇地图' });
+    expect(map).toHaveTextContent('面包店 · 从这里开始');
+    expect(screen.getByRole('img', { name: '帐篷营地：未解锁' })).toBeInTheDocument();
+    expect(map.querySelectorAll('[data-layer="plot"]')).toHaveLength(4);
+  });
+
+  it('有会话：按后端返回的各关状态显示，不播放动画', async () => {
+    storage.setSessionId(SESSION_ID);
+    storage.setLearnerId(LEARNER_ID);
+    mockApi().on(
+      'GET',
+      /\/api\/sessions\/[^/]+$/,
+      json(200, sessionView({ 1: 'solved', 2: 'solved', 3: 'solved', 4: 'solved', 5: 'solved' })),
+    );
+    renderApp();
+    expect(await screen.findByRole('img', { name: '面包店：已点亮' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '帐篷营地：施工中 2/3' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '小桥：未解锁' })).toBeInTheDocument();
+    expect(screen.getByText(/面包店已经点亮了/)).toBeInTheDocument();
+    expect(screen.getByText(/帐篷营地还差 1 道三角形的题/)).toBeInTheDocument();
+    expect(document.querySelector('.entering, .lighting')).toBeNull();
+  });
+});
+
+describe('首次进入引导（H）', () => {
+  const freshVisitor = () => localStorage.removeItem('polygon.guideSeen');
+
+  it('第一次来：自动出现，焦点在"下一步"；走完 4 步后关闭并记住', async () => {
+    freshVisitor();
+    mockApi();
+    renderApp();
+    const dialog = await screen.findByRole('dialog', { name: '欢迎来到图形小镇' });
+    expect(screen.getByRole('button', { name: '下一步' })).toHaveFocus();
+    for (const title of ['这里将盖起面包店', '一关一关往前走', '准备好了吗']) {
+      await userEvent.click(screen.getByRole('button', { name: '下一步' }));
+      expect(screen.getByRole('dialog', { name: title })).toBeInTheDocument();
+    }
+    await userEvent.click(screen.getByRole('button', { name: '开始吧' }));
+    expect(dialog).not.toBeInTheDocument();
+    expect(storage.getGuideSeen()).toBe(true);
+    await waitFor(() => expect(screen.getByRole('button', { name: '开始练习' })).toHaveFocus());
+  });
+
+  it('跳过后刷新不再出现；"玩法介绍"可以再看', async () => {
+    freshVisitor();
+    mockApi();
+    const first = renderApp();
+    await userEvent.click(await screen.findByRole('button', { name: '跳过引导' }));
+    first.unmount();
+    renderApp();
+    await screen.findByRole('button', { name: '开始练习' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '玩法介绍' }));
+    expect(screen.getByRole('dialog', { name: '欢迎来到图形小镇' })).toBeInTheDocument();
+  });
+
+  it('按 Esc：关闭并记住，焦点回到主按钮', async () => {
+    freshVisitor();
+    mockApi();
+    renderApp();
+    await screen.findByRole('dialog');
+    // 焦点移到对话框外面后，Esc 仍然有效
+    (document.activeElement as HTMLElement).blur();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(storage.getGuideSeen()).toBe(true);
+    await waitFor(() => expect(screen.getByRole('button', { name: '开始练习' })).toHaveFocus());
+  });
+
+  it('已经有学生（升级前就在练习）：不自动出现', async () => {
+    freshVisitor();
+    storage.setLearnerId(LEARNER_ID);
+    mockApi();
+    renderApp();
+    await screen.findByRole('button', { name: '开始练习' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
