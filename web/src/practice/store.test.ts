@@ -350,3 +350,21 @@ describe('学习事件的等待预算', () => {
     expect(delays).toEqual([500, 1000]);
   });
 });
+
+describe('视频事件（I）', () => {
+  it('同一题的每种事件只上报一次，类型互不影响', async () => {
+    const ok201 = ok({ replayed: false }, 201);
+    const { store, calls } = setup(ok201, ok201, ok201);
+    store.reportVideoStarted(4);
+    store.reportVideoStarted(4);
+    store.reportVideoCompleted(4);
+    store.reportVideoCompleted(4);
+    store.reportTextOpened(4);
+    await settle();
+    expect(calls.map((c) => (c.body as { type: string }).type)).toEqual([
+      'video_started',
+      'video_completed',
+      'explanation_text_opened',
+    ]);
+  });
+});

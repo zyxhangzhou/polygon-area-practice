@@ -16,6 +16,8 @@ describe('前端托管（生产模式）', () => {
     fs.writeFileSync(path.join(dist, 'index.html'), INDEX_HTML);
     fs.mkdirSync(path.join(dist, 'assets'));
     fs.writeFileSync(path.join(dist, 'assets', 'app.js'), 'console.log("app")');
+    fs.mkdirSync(path.join(dist, 'videos'));
+    fs.writeFileSync(path.join(dist, 'videos', 'q04.mp4'), Buffer.alloc(4096, 7));
     app = await buildTestApp({ webDistDir: dist });
   });
   afterAll(async () => {
@@ -30,6 +32,18 @@ describe('前端托管（生产模式）', () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toMatch(/text\/html/);
     expect(res.body).toContain('APP_ENTRY');
+  });
+
+  it('视频支持分段请求：Range 返回 206 和请求的范围（video-explanations）', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/videos/q04.mp4',
+      headers: { range: 'bytes=0-1023' },
+    });
+    expect(res.statusCode).toBe(206);
+    expect(res.headers['content-type']).toBe('video/mp4');
+    expect(res.headers['content-range']).toBe('bytes 0-1023/4096');
+    expect(res.rawPayload).toHaveLength(1024);
   });
 
   it('存在的脚本返回脚本本身', async () => {

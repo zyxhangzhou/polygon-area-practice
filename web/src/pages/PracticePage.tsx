@@ -5,6 +5,7 @@ import { feedbackLine, type Line } from '../companion/lines';
 import { usePracticeState, useStore } from '../practice/context';
 import { Figure } from '../practice/Figure';
 import { ExplanationPanel } from '../practice/ExplanationPanel';
+import { VideoPanel } from '../practice/VideoPanel';
 import { LoadFailed, useLoad } from '../practice/load';
 import type { Feedback } from '../practice/store';
 import { navigate } from '../router';
@@ -218,6 +219,7 @@ function QuestionPanel({ session, qid }: { session: SessionView; qid: number }) 
   const [answer, setAnswer] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 换题时清掉上一题的反馈
@@ -340,6 +342,11 @@ function QuestionPanel({ session, qid }: { session: SessionView; qid: number }) 
               {showExplanation ? '收起图文解析' : '看图文解析'}
             </button>
           )}
+          {canExplain && detail.hasVideo && (
+            <button disabled={retrying !== null} onClick={() => setShowVideo((v) => !v)}>
+              {showVideo ? '收起视频讲解' : '看视频讲解'}
+            </button>
+          )}
           {status !== 'solved' && (
             <button className="link" disabled={locked} onClick={() => store.skip(qid)}>
               先跳过
@@ -358,6 +365,9 @@ function QuestionPanel({ session, qid }: { session: SessionView; qid: number }) 
             )}
         </div>
 
+        {showVideo && canExplain && detail.hasVideo && (
+          <VideoPanel qid={qid} onShowText={() => setShowExplanation(true)} />
+        )}
         {showExplanation && canExplain && <ExplanationPanel qid={qid} />}
       </article>
 
