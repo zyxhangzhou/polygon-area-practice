@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_MARKS_PER_TEXT, parseHighlights } from './highlight.js';
 
 const length = z.number().positive();
 const lengthUnit = z.enum(['cm', 'dm', 'm']);
@@ -72,10 +73,41 @@ export const DecimalString = z
   .string()
   .regex(/^\d+(\.\d{1,2})?$/, '答案必须是最多 2 位小数的非负数');
 
-export const ExplanationSchema = z.object({
-  steps: z.array(z.string().min(1)).min(3, '图文解析至少 3 步'),
-  tip: z.string().min(1, '易错提醒不能为空'),
-});
+export const ExplanationSchema = z
+  .object({
+    steps: z.array(z.string().min(1)).min(3, '图文解析至少 3 步'),
+    tip: z.string().min(1, '易错提醒不能为空'),
+  })
+  .superRefine((exp, ctx) => {
+    // 重点标记（explanation-highlights）：格式合法、每处最多 3 个；讲解至少有条件和公式，提醒至少有关键
+    const counts = { c: 0, f: 0, k: 0 };
+    const check = (text: string, path: (string | number)[], where: string) => {
+      const r = parseHighlights(text);
+      if ('error' in r) {
+        ctx.addIssue({ code: 'custom', path, message: `${where}的重点标记不合法：${r.error}` });
+        return [];
+      }
+      const marks = r.segments.filter((s) => s.kind !== null);
+      if (marks.length > MAX_MARKS_PER_TEXT) {
+        ctx.addIssue({
+          code: 'custom',
+          path,
+          message: `${where}有 ${marks.length} 处重点标记，最多 ${MAX_MARKS_PER_TEXT} 处`,
+        });
+      }
+      return marks;
+    };
+    exp.steps.forEach((step, i) => {
+      for (const m of check(step, ['steps', i], `第 ${i + 1} 步`)) counts[m.kind!] += 1;
+    });
+    const tipMarks = check(exp.tip, ['tip'], '易错提醒');
+    if (counts.c < 1)
+      ctx.addIssue({ code: 'custom', path: ['steps'], message: '分步讲解至少标出 1 处条件 {c:…}' });
+    if (counts.f < 1)
+      ctx.addIssue({ code: 'custom', path: ['steps'], message: '分步讲解至少标出 1 处公式 {f:…}' });
+    if (!tipMarks.some((m) => m.kind === 'k'))
+      ctx.addIssue({ code: 'custom', path: ['tip'], message: '易错提醒至少标出 1 处关键 {k:…}' });
+  });
 export type Explanation = z.infer<typeof ExplanationSchema>;
 
 export const CommonMistakeSchema = z.object({

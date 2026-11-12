@@ -129,7 +129,14 @@ describe('总结页', () => {
     const panel = await screen.findByRole('region', { name: '第 2 题回看' });
     expect(await within(panel).findByRole('img', { name: '题目图形' })).toBeInTheDocument();
     expect(panel).toHaveTextContent('作答 2 次，答错 1 次，写过 13');
-    expect(await within(panel).findByRole('region', { name: '图文解析' })).toBeInTheDocument();
+    const exp = await within(panel).findByRole('region', { name: '图文解析' });
+    // 与答题页相同的重点标记和图例（explanation-highlights）
+    expect([...exp.querySelectorAll('mark[data-kind="c"]')].map((m) => m.textContent)).toEqual([
+      '底是 6.5 m',
+      '高是 4 m',
+    ]);
+    expect(within(exp).getByRole('list', { name: '颜色说明' })).toBeInTheDocument();
+    expect(exp.textContent).not.toMatch(/[{}]/);
     await waitFor(() =>
       expect(api.writes().map((c) => c.body)).toEqual([
         expect.objectContaining({ questionId: 2, type: 'explanation_text_opened' }),
