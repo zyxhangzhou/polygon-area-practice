@@ -37,9 +37,9 @@ describe('GET explanation', () => {
   });
 
   it('答错、跳过后都可获取：分步讲解、易错提醒、视频地址', async () => {
-    await c.wrong(1);
-    await c.skip(2);
-    for (const qid of [1, 2]) {
+    await c.wrong(2);
+    await c.skip(3);
+    for (const qid of [2, 3]) {
       const res = await c.explanation(qid);
       expect(res.status).toBe(200);
       expect(res.body.questionId).toBe(qid);
@@ -59,6 +59,13 @@ describe('GET explanation', () => {
     const res = await c.explanation(4);
     expect(res.status).toBe(200);
     expect(res.body.videoUrl).toBe('/videos/q04.mp4');
+  });
+
+  it('每关第 1 题有视频地址：第 1 题答错后返回 q01', async () => {
+    await c.wrong(1);
+    const res = await c.explanation(1);
+    expect(res.status).toBe(200);
+    expect(res.body.videoUrl).toBe('/videos/q01.mp4');
   });
 
   it('获取解析不产生记录，也不算看过', async () => {

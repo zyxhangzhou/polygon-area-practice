@@ -54,7 +54,7 @@ export const QUESTIONS: QuestionSeed[] = [
       ],
       tip: '平行四边形面积就是"底 × 高"，不用 ÷ 2。',
     },
-    videoUrl: null,
+    videoUrl: '/videos/q01.mp4',
     commonMistakes: [
       { answer: '20', hint: '平行四边形面积就是底 × 高，不用 ÷ 2 哦。' },
       { answer: '13', hint: '面积要用乘法，把底和高相乘，不是相加。' },
@@ -202,7 +202,7 @@ export const QUESTIONS: QuestionSeed[] = [
       ],
       tip: '先算上底加下底（记得加括号），再乘高，最后 ÷ 2。',
     },
-    videoUrl: null,
+    videoUrl: '/videos/q07.mp4',
     commonMistakes: [
       { answer: '60', hint: '（4 + 8）× 5 = 60 是拼成的平行四边形的面积，梯形还要 ÷ 2。' },
       { answer: '160', hint: '上底和下底要先相加，不是相乘。' },
