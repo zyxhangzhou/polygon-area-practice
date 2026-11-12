@@ -22,7 +22,7 @@ services:
         value: info
       # 服务前面可信的代理层数，按 docs/deploy.md 的方法实测确认
       - key: TRUST_PROXY_HOPS
-        value: '1'
+        value: '2'
       # PORT 由 Render 注入
 
 databases:
