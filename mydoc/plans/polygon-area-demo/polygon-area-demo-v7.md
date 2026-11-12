@@ -1,3 +1,5 @@
+> Superseded by [v8](polygon-area-demo-v8.md)（2026-11-12）：新增 N（网站图标）。
+
 # 多边形面积练习 Demo — v7
 
 - Status: completed
