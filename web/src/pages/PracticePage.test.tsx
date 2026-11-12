@@ -520,13 +520,58 @@ describe('视频讲解（I）', () => {
       .filter((c) => c.path.endsWith('/events'))
       .map((c) => (c.body as { type: string }).type);
 
-  function openQ4() {
+  const VTT = [
+    'WEBVTT',
+    '',
+    '1',
+    '00:00:00.000 --> 00:00:08.088',
+    '这是营地里的一顶帐篷，正面是一个三角形。',
+    '',
+    '2',
+    '00:00:08.088 --> 00:00:14.856',
+    '三角形的面积怎么算呢？我们先复制一个完全一样的三角形。',
+    '',
+  ].join('\n');
+
+  function openQ4({ vtt = true } = {}) {
     const { api } = open(4, stage2Wrong4());
     api
       .on('GET', /\/explanation$/, json(200, explanation(4)))
       .on('POST', /\/events$/, json(201, { replayed: false }));
+    if (vtt) api.on('GET', /\/videos\/q04\.vtt$/, new Response(VTT, { status: 200 }));
     return api;
   }
+
+  const seekTo = (video: HTMLVideoElement, t: number) => {
+    Object.defineProperty(video, 'currentTime', { value: t, configurable: true });
+    fireEvent.timeUpdate(video);
+  };
+
+  it('字幕显示在视频下方，随播放进度切换，不叠在画面上', async () => {
+    openQ4();
+    await screen.findByText('这道题上次没答对，再试试吧。');
+    await userEvent.click(screen.getByRole('button', { name: '看视频讲解' }));
+    const region = await screen.findByRole('region', { name: '视频讲解' });
+    const caption = await within(region).findByTestId('video-caption');
+    const video = region.querySelector('video')!;
+    // 字幕行在视频之后（下方），不是视频内部的叠加层
+    expect(video.compareDocumentPosition(caption) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    seekTo(video, 3);
+    expect(caption).toHaveTextContent('这是营地里的一顶帐篷，正面是一个三角形。');
+    seekTo(video, 13);
+    expect(caption).toHaveTextContent('三角形的面积怎么算呢？我们先复制一个完全一样的三角形。');
+    seekTo(video, 30);
+    expect(caption.textContent?.trim()).toBe('');
+  });
+
+  it('字幕读取失败：不显示字幕行，视频照常可以播放', async () => {
+    openQ4({ vtt: false });
+    await screen.findByText('这道题上次没答对，再试试吧。');
+    await userEvent.click(screen.getByRole('button', { name: '看视频讲解' }));
+    const region = await screen.findByRole('region', { name: '视频讲解' });
+    await waitFor(() => expect(region.querySelector('video')).toBeInTheDocument());
+    expect(within(region).queryByTestId('video-caption')).not.toBeInTheDocument();
+  });
 
   it('有视频的题：同时提供"看图文解析"和"看视频讲解"；没有视频的题只有图文', async () => {
     openQ4();
@@ -547,11 +592,11 @@ describe('视频讲解（I）', () => {
     await userEvent.click(screen.getByRole('button', { name: '看视频讲解' }));
     const region = await screen.findByRole('region', { name: '视频讲解' });
     const video = region.querySelector('video')!;
-    // 字幕默认显示，不自动播放，有封面
+    // 浏览器字幕平时不显示（只在全屏时打开），不自动播放，有封面
     const track = video.querySelector('track')!;
     expect(track).toHaveAttribute('kind', 'captions');
     expect(track).toHaveAttribute('src', '/videos/q04.vtt');
-    expect(track).toHaveAttribute('default');
+    expect(track).not.toHaveAttribute('default');
     expect(video).not.toHaveAttribute('autoplay');
     expect(video).toHaveAttribute('poster', '/videos/q04.jpg');
     expect(video.querySelector('source')).toHaveAttribute('src', '/videos/q04.mp4');

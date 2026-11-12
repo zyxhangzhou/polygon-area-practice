@@ -32,6 +32,7 @@ W, H, FPS, SS = 1280, 720, 30, 2  # 输出尺寸、帧率、超采样倍数
 VOICE, RATE = "zh-CN-XiaoxiaoNeural", "-5%"
 PAUSE = 0.6  # 每句旁白后的停顿（秒）
 MAX_BYTES = 5 * 1024 * 1024
+SAFE_TOP = 600  # 底部安全区（y ≥ 600，1/6 高度）只留底色，给播放控制条和全屏字幕
 
 # 图形小镇的色板
 PAPER = (247, 242, 233)
@@ -186,7 +187,7 @@ def frame_chrome(c: Canvas, title: str, subtitle: str) -> None:
     """每一帧都有的标题、卡片和右下角标志"""
     c.text((64, 52), title, size=34, path=FONT_SERIF)
     c.text((64, 102), subtitle, size=20, color=MUTED)
-    c.round_rect((48, 150, 1232, 680), CARD, radius=28)
+    c.round_rect((48, 150, 1232, 590), CARD, radius=28)
     # 右上角的小镇标志：平行四边形 + 三角形
     c.polygon([(1150, 82), (1166, 52), (1210, 52), (1194, 82)], fill=CLAY)
     c.polygon([(1166, 52), (1173, 40), (1180, 52)], fill=MIST)
@@ -216,8 +217,9 @@ def q04(params: dict) -> tuple[Video, float]:
     base, height = params["base"], params["height"]
     para = base * height
     area = para / 2
-    s = 40  # 每厘米的像素
-    ox, oy = 110, 600  # 底边左端
+    # 复制出的三角形绕斜边中点旋转半圈：顶点扫过的范围约为 oy - 10.4s 到 oy + 1.4s，要在卡片内、安全区上方
+    s = 34  # 每厘米的像素
+    ox, oy = 110, 490  # 底边左端
     apex_x = ox + base * s * 0.35
     A, B, C = (apex_x, oy - height * s), (ox + base * s, oy), (ox, oy)
     M = lerp(A, B, 0.5)
@@ -270,7 +272,7 @@ def q04(params: dict) -> tuple[Video, float]:
                 copy(c, 180, 1),
                 redraw_original(c),
                 labels(c),
-                formula_line(c, 210, "平行四边形的面积 = 底 × 高", f"{n(base)} × {n(height)} = {n(para)} cm²", phase(p, 0.1, 0.5)),
+                formula_line(c, 180, "平行四边形的面积 = 底 × 高", f"{n(base)} × {n(height)} = {n(para)} cm²", phase(p, 0.1, 0.5)),
             ),
         ),
         Shot(
@@ -280,8 +282,8 @@ def q04(params: dict) -> tuple[Video, float]:
                 copy(c, 180, 1, fade_to=1 - 0.75 * phase(p, 0.1, 0.4)),
                 c.polygon(tri, fill=mix(MIST_SOFT, (205, 222, 230), phase(p, 0.1, 0.4)), outline=MIST, width=4),
                 labels(c),
-                formula_line(c, 210, "平行四边形的面积 = 底 × 高", f"{n(base)} × {n(height)} = {n(para)} cm²", 1),
-                formula_line(c, 320, "三角形是它的一半", f"{n(para)} ÷ 2 = {n(area)} cm²", phase(p, 0.45, 0.8), color=MIST),
+                formula_line(c, 180, "平行四边形的面积 = 底 × 高", f"{n(base)} × {n(height)} = {n(para)} cm²", 1),
+                formula_line(c, 285, "三角形是它的一半", f"{n(para)} ÷ 2 = {n(area)} cm²", phase(p, 0.45, 0.8), color=MIST),
             ),
         ),
         Shot(
@@ -291,9 +293,9 @@ def q04(params: dict) -> tuple[Video, float]:
                 copy(c, 180, 1, fade_to=0.25),
                 c.polygon(tri, fill=(205, 222, 230), outline=MIST, width=4),
                 labels(c),
-                formula_line(c, 210, "平行四边形的面积 = 底 × 高", f"{n(base)} × {n(height)} = {n(para)} cm²", 1),
-                formula_line(c, 320, "三角形是它的一半", f"{n(para)} ÷ 2 = {n(area)} cm²", 1, color=MIST),
-                callout(c, (720, 440, 1190, 510), f"易错：{n(para)} 是平行四边形，别忘了 ÷ 2", phase(p, 0.1, 0.4), CLAY_SOFT, CLAY_TEXT),
+                formula_line(c, 180, "平行四边形的面积 = 底 × 高", f"{n(base)} × {n(height)} = {n(para)} cm²", 1),
+                formula_line(c, 285, "三角形是它的一半", f"{n(para)} ÷ 2 = {n(area)} cm²", 1, color=MIST),
+                callout(c, (720, 395, 1190, 452), f"易错：{n(para)} 是平行四边形，别忘了 ÷ 2", phase(p, 0.1, 0.4), CLAY_SOFT, CLAY_TEXT),
             ),
         ),
         Shot(
@@ -303,10 +305,10 @@ def q04(params: dict) -> tuple[Video, float]:
                 copy(c, 180, 1, fade_to=0.25),
                 c.polygon(tri, fill=(205, 222, 230), outline=MIST, width=4),
                 labels(c),
-                formula_line(c, 210, "平行四边形的面积 = 底 × 高", f"{n(base)} × {n(height)} = {n(para)} cm²", 1),
-                formula_line(c, 320, "三角形是它的一半", f"{n(para)} ÷ 2 = {n(area)} cm²", 1, color=MIST),
-                callout(c, (720, 440, 1190, 510), f"易错：{n(para)} 是平行四边形，别忘了 ÷ 2", 1, CLAY_SOFT, CLAY_TEXT),
-                callout(c, (720, 540, 1190, 620), "三角形面积 = 底 × 高 ÷ 2", phase(p, 0.1, 0.4), GOLD_SOFT, INK),
+                formula_line(c, 180, "平行四边形的面积 = 底 × 高", f"{n(base)} × {n(height)} = {n(para)} cm²", 1),
+                formula_line(c, 285, "三角形是它的一半", f"{n(para)} ÷ 2 = {n(area)} cm²", 1, color=MIST),
+                callout(c, (720, 395, 1190, 452), f"易错：{n(para)} 是平行四边形，别忘了 ÷ 2", 1, CLAY_SOFT, CLAY_TEXT),
+                callout(c, (720, 470, 1190, 530), "三角形面积 = 底 × 高 ÷ 2", phase(p, 0.1, 0.4), GOLD_SOFT, INK),
             ),
         ),
     ]
@@ -328,8 +330,8 @@ def q10(params: dict) -> tuple[Video, float]:
     rect_area = width * wall
     tri_area = width * roof / 2
     total = rect_area + tri_area
-    s = 30
-    ox, oy = 190, 600
+    s = 25
+    ox, oy = 190, 525
     x1 = ox + width * s
     eave = oy - wall * s
     apex = (ox + width * s / 2, eave - roof * s)
@@ -368,9 +370,9 @@ def q10(params: dict) -> tuple[Video, float]:
     L3 = ("合起来", f"{n(rect_area)} + {n(tri_area)} = {n(total)} cm²")
 
     def formulas(c: Canvas, a: float, b: float, d: float):
-        formula_line(c, 200, L1[0], L1[1], a)
-        formula_line(c, 300, L2[0], L2[1], b, color=CLAY_TEXT)
-        formula_line(c, 400, L3[0], L3[1], d, color=MIST)
+        formula_line(c, 170, L1[0], L1[1], a)
+        formula_line(c, 265, L2[0], L2[1], b, color=CLAY_TEXT)
+        formula_line(c, 360, L3[0], L3[1], d, color=MIST)
 
     lift = 34
     shots = [
@@ -403,8 +405,8 @@ def q10(params: dict) -> tuple[Video, float]:
             lambda c, p: (
                 house(c, tint=1),
                 formulas(c, 1, 1, 1),
-                callout(c, (720, 500, 1190, 560), f"{n(rect_area + width * roof)}：三角形忘了 ÷ 2", phase(p, 0.05, 0.3), CLAY_SOFT, CLAY_TEXT),
-                callout(c, (720, 580, 1190, 640), f"{n(rect_area)}：漏掉了屋顶", phase(p, 0.5, 0.75), CLAY_SOFT, CLAY_TEXT),
+                callout(c, (720, 465, 1190, 512), f"{n(rect_area + width * roof)}：三角形忘了 ÷ 2", phase(p, 0.05, 0.3), CLAY_SOFT, CLAY_TEXT),
+                callout(c, (720, 525, 1190, 572), f"{n(rect_area)}：漏掉了屋顶", phase(p, 0.5, 0.75), CLAY_SOFT, CLAY_TEXT),
             ),
         ),
     ]
@@ -436,6 +438,19 @@ def question(qid: int) -> tuple[dict, str]:
 
 
 # ---------------------------------------------------------------- 生成
+
+
+def unsafe_pixels(rgb: bytes) -> int:
+    """底部安全区（y ≥ SAFE_TOP）中与底色相差超过 8 的像素数"""
+    row = W * 3
+    count = 0
+    for y in range(SAFE_TOP, H, 4):
+        line = rgb[y * row:(y + 1) * row]
+        for x in range(0, W, 4):
+            r, g, b = line[x * 3], line[x * 3 + 1], line[x * 3 + 2]
+            if max(abs(r - PAPER[0]), abs(g - PAPER[1]), abs(b - PAPER[2])) > 8:
+                count += 1
+    return count
 
 
 def run(cmd: list[str]) -> str:
@@ -489,6 +504,7 @@ def build(video: Video) -> dict:
             stdin=subprocess.PIPE,
         )
         poster = None
+        safe_violations = 0
         poster_frame = min(frames - 1, int((starts[video.poster_shot] + durations[video.poster_shot] - 0.1) * FPS))
         for f in range(frames):
             t = f / FPS
@@ -499,6 +515,8 @@ def build(video: Video) -> dict:
             video.shots[k].draw(c, min(1.0, (t - starts[k]) / max(durations[k] - PAUSE, 0.1)))
             data = c.frame()
             enc.stdin.write(data)
+            if f % FPS == 0 or f == frames - 1:  # 每秒抽一帧检查安全区
+                safe_violations += unsafe_pixels(data)
             if f == poster_frame:
                 poster = Image.frombytes("RGB", (W, H), data)
         enc.stdin.close()
@@ -514,6 +532,7 @@ def build(video: Video) -> dict:
         lines += [str(i + 1), f"{vtt_time(starts[i])} --> {vtt_time(starts[i] + durations[i])}", shot.say, ""]
     (OUT / f"{video.key}.vtt").write_text("\n".join(lines), encoding="utf-8")
 
+    assert safe_violations == 0, f"{video.key}：底部安全区内有 {safe_violations} 个像素不是底色"
     real = duration(mp4)
     size = mp4.stat().st_size
     report = {
@@ -523,6 +542,7 @@ def build(video: Video) -> dict:
         "subtitleEnd": round(total, 2),
         "videoDuration": round(real, 2),
         "bytes": size,
+        "safeAreaClean": safe_violations == 0,
     }
     assert abs(real - total) < 1.0, f"视频时长 {real} 与字幕 {total} 相差超过 1 秒"
     assert size < MAX_BYTES, f"{mp4.name} 有 {size} 字节，超过 5 MB"
