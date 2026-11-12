@@ -16,7 +16,7 @@
 
 - [x] 3.1 `docs/video-assets.md` 素材来源说明，README 增加链接，已知限制补充"视频是公开的静态文件"
 - [x] 3.2 浏览器实跑：第 4 题答错 → 看完视频 → 答对 → 总结页建议出现"看完了视频解析后做对了"；第 10 题视频可以播放，字幕正常；记入 `docs/verification.md`
-- [ ] 3.3 `npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
+- [x] 3.3 `npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
 
 ## Workflow follow-up
 
