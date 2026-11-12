@@ -1,9 +1,18 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildTestApp } from './helpers.js';
+
+/** 真实的图标文件（web/public），构建时原样复制到 web/dist 根目录（site-favicon） */
+const WEB_PUBLIC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../web/public');
+const ICONS = [
+  ['favicon.ico', /^image\/(x-icon|vnd\.microsoft\.icon)/],
+  ['favicon.svg', /^image\/svg\+xml/],
+  ['apple-touch-icon.png', /^image\/png/],
+] as const;
 
 const INDEX_HTML = '<!doctype html><html><body><div id="root">APP_ENTRY</div></body></html>';
 
@@ -18,6 +27,7 @@ describe('前端托管（生产模式）', () => {
     fs.writeFileSync(path.join(dist, 'assets', 'app.js'), 'console.log("app")');
     fs.mkdirSync(path.join(dist, 'videos'));
     fs.writeFileSync(path.join(dist, 'videos', 'q04.mp4'), Buffer.alloc(4096, 7));
+    for (const [name] of ICONS) fs.copyFileSync(path.join(WEB_PUBLIC, name), path.join(dist, name));
     app = await buildTestApp({ webDistDir: dist });
   });
   afterAll(async () => {
@@ -44,6 +54,13 @@ describe('前端托管（生产模式）', () => {
     expect(res.headers['content-type']).toBe('video/mp4');
     expect(res.headers['content-range']).toBe('bytes 0-1023/4096');
     expect(res.rawPayload).toHaveLength(1024);
+  });
+
+  it.each(ICONS)('网站图标 /%s 返回图片，不回退为 HTML（site-favicon）', async (name, type) => {
+    const res = await app.inject({ method: 'GET', url: `/${name}`, headers: html });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toMatch(type);
+    expect(res.rawPayload).toEqual(fs.readFileSync(path.join(WEB_PUBLIC, name)));
   });
 
   it('存在的脚本返回脚本本身', async () => {

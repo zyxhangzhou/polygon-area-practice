@@ -20,7 +20,7 @@
 | 趣味互动，与练习结合 | 图形小镇：建筑由各关进度驱动，按关卡解锁；首次进入时有引导 | 建筑状态只来自后端，刷新不变 |
 | 学习总结，基于真实记录 | 三类题数（一次做对、订正后做对、需回顾）、首次正确率和最终完成率、具体建议、回看题目与解析；还有练习记录页 | 见下方"统计口径" |
 | 部署与排障 | Docker Compose 一条命令启动；线上 Render；冒烟检查；日志带请求 ID；回滚步骤 | [docs/deploy.md](docs/deploy.md) |
-| 自动化测试 | 后端 334 个（连接真实 PostgreSQL）、前端 208 个；CI 在每个 PR 上运行 | 见"运行测试"与 [docs/delivery.md](docs/delivery.md) |
+| 自动化测试 | 后端 337 个（连接真实 PostgreSQL）、前端 212 个；CI 在每个 PR 上运行 | 见"运行测试"与 [docs/delivery.md](docs/delivery.md) |
 
 ## 快速开始
 
@@ -236,6 +236,7 @@ flowchart LR
 | 建筑和圆圆用 SVG + CSS 动画，不引入动画库 | 由状态驱动、体积小、可测试；系统开了"减少动态效果"时统一关闭 | 复杂的手势或物理动画 |
 | 标题字体自托管（Fontsource），正文用系统黑体 | Google Fonts 在国内访问不稳定，加载失败会卡住首屏 | 构建产物多出约 15 MB 字体切片（每个访问者只下载用到的几块） |
 | 视频用 Python + Pillow 逐帧绘制，旁白用 edge-tts | 本机没有 Manim；可重复生成，数字从题库算出；edge-tts 由本人试听后选定 | edge-tts 是非官方接口（只在生成时使用） |
+| 网站图标由 `scripts/build_icons.py`（Pillow）生成，结果提交到仓库 | 图形取自页面左上角的标志，坐标只写一处；SVG、ICO（16/32/48）和 Apple 触摸图标一次生成；构建和部署不需要 Python | 改图标时要重新运行脚本 |
 | 只要求学生填数字，单位固定 | 避免单位写法五花八门，判题口径清楚 | 不考查单位换算 |
 
 ## 常见故障
@@ -278,7 +279,7 @@ flowchart LR
 | [docs/demo-script.md](docs/demo-script.md) | 展示流程 |
 | [docs/project-outline.md](docs/project-outline.md) | 最初的项目大纲与决策记录 |
 | `openspec/specs/` | 各模块的行为规格（21 份）；`openspec/changes/archive/` 是每个 change 的方案、设计与任务 |
-| [mydoc/plans/polygon-area-demo/](mydoc/plans/polygon-area-demo/README.md) | 需求拆分计划（A–J，v1–v4） |
+| [mydoc/plans/polygon-area-demo/](mydoc/plans/polygon-area-demo/README.md) | 需求拆分计划（A–N，v1–v8） |
 
 ## 提交说明
 
