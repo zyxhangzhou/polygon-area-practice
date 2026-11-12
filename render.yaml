@@ -20,9 +20,9 @@ services:
         value: production
       - key: LOG_LEVEL
         value: info
-      # 服务前面可信的代理层数，按 docs/deploy.md 的方法实测确认
+      # 服务前面可信的代理层数：Cloudflare 边缘 → Render 内网代理 → 本服务，实测见 docs/deploy.md
       - key: TRUST_PROXY_HOPS
-        value: '2'
+        value: '3'
       # PORT 由 Render 注入
 
 databases:
