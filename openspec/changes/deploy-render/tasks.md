@@ -17,7 +17,7 @@
 - [x] 3.1 `npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
 - [ ] 3.2 用户在 Render 用 Blueprint 创建环境（G 的分支），部署成功
 - [ ] 3.3 对公网地址运行冒烟检查通过；按 D3 实测并确认 `TRUST_PROXY_HOPS`，记入 `docs/deploy.md`
-- [ ] 3.4 在公网地址上用浏览器完整练习一遍，直到总结页；结果记入 `docs/verification.md`
+- [x] 3.4 在公网地址上用浏览器完整练习一遍，直到总结页；结果记入 `docs/verification.md`
 
 ## Workflow follow-up
 
