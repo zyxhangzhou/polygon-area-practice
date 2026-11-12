@@ -223,4 +223,4 @@
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · M squash merge 为 b6d7083，Render 自动部署成功；线上第 4 题解析接口返回带标记的文字，浏览器中 6 处标记与图例正确、没有花括号，冒烟检查通过；OpenSpec 归档为 `2026-11-12-explanation-highlights`。A–M 全部完成，计划状态改为 completed
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · v8：用户发现 favicon 空白，新增 N；OpenSpec `site-favicon` 待评审
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · 用户确认 N 方案"lgtm"。实现完成：3 个图标、index.html 声明；测试后端 337、前端 212 全部通过；本地生产构建中图标返回正确类型，浏览器加载成功
-- 2026-11-13 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · N squash merge 为 1fcdae7，Render 自动部署成功；线上 3 个图标返回 200 和正确的类型，入口页面声明了图标，冒烟检查通过；OpenSpec 归档为 `2026-11-12-site-favicon`。A–N 全部完成，计划状态改为 completed
+- 2026-11-13 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · N squash merge 为 1fcdae7，Render 自动部署成功；线上 3 个图标返回 200 和正确的类型，入口页面声明了图标，冒烟检查通过；OpenSpec 归档为 `2026-11-13-site-favicon`。A–N 全部完成，计划状态改为 completed
