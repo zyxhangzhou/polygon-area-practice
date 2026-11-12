@@ -26,7 +26,24 @@ function write(key: Key, value: string | null) {
   }
 }
 
+/** 引导是否看过：只是本机的界面偏好，不是学习数据；清除学生时不清它 */
+const GUIDE_KEY = 'polygon.guideSeen';
 export const storage = {
+  /** 读取失败时按"看过"处理，避免每次都弹出引导 */
+  getGuideSeen(): boolean {
+    try {
+      return localStorage.getItem(GUIDE_KEY) === '1';
+    } catch {
+      return true;
+    }
+  },
+  setGuideSeen() {
+    try {
+      localStorage.setItem(GUIDE_KEY, '1');
+    } catch {
+      // 不可用时读取也会失败，按"看过"处理
+    }
+  },
   getLearnerId: () => read('learnerId'),
   setLearnerId: (id: string | null) => write('learnerId', id),
   getSessionId: () => read('sessionId'),

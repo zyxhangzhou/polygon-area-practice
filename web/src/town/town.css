@@ -1,0 +1,171 @@
+/* 建筑与小镇（design D3）：只用 CSS 动画；--i 是依次出现的序号 */
+
+.building-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* 新的一层：从上方落下，落地轻微回弹 */
+.building-art .layer.entering {
+  animation: layer-drop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--i, 0) * 120ms);
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+@keyframes layer-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-26px) scaleY(1.04);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 点亮：落层之后，窗户依次亮灯，光晕扩散 */
+.building-art .lights.lighting .light {
+  animation: light-on 420ms ease-out both;
+  animation-delay: calc(520ms + var(--i, 0) * 90ms);
+}
+@keyframes light-on {
+  0% {
+    opacity: 0;
+  }
+  45% {
+    opacity: 1;
+    filter: brightness(1.25);
+  }
+  100% {
+    opacity: 1;
+    filter: none;
+  }
+}
+.building-art .glow.lighting {
+  animation: glow-in 900ms ease-out 600ms both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes glow-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 施工中：小旗轻摆 */
+.building-art .flag {
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+  animation: flag-sway 2.8s ease-in-out infinite;
+}
+@keyframes flag-sway {
+  0%,
+  100% {
+    transform: skewY(0deg);
+  }
+  50% {
+    transform: skewY(-6deg) scaleX(0.92);
+  }
+}
+
+.building-art.locked {
+  opacity: 0.55;
+}
+
+/* ---------- 小镇地图（首页） ---------- */
+
+.town-map {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: #ede5d3;
+  aspect-ratio: 16 / 8;
+  min-height: 340px;
+  box-shadow: var(--shadow-card-lg);
+}
+.town-map > .town-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.town-spot {
+  position: absolute;
+  width: 20%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.town-spot:nth-of-type(1) {
+  left: 6%;
+  top: 38%;
+}
+.town-spot:nth-of-type(2) {
+  left: 30%;
+  top: 34%;
+}
+.town-spot:nth-of-type(3) {
+  left: 54%;
+  top: 32%;
+}
+.town-spot:nth-of-type(4) {
+  left: 76%;
+  top: 20%;
+}
+.town-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 1px 0 var(--line);
+}
+.town-tag.lit {
+  background: var(--ink);
+  color: var(--light-soft);
+}
+.town-tag.locked {
+  color: var(--ink-2);
+}
+
+/* 窄屏：地图改为 2×2 网格 */
+@media (max-width: 640px) {
+  .town-map {
+    aspect-ratio: auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 16px;
+  }
+  .town-spot {
+    position: relative;
+    left: auto !important;
+    top: auto !important;
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .building-art *,
+  .building-art {
+    animation: none !important;
+    transition: none !important;
+  }
+}

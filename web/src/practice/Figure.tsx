@@ -19,6 +19,75 @@ type Drawing = {
   areaLabel?: string;
 };
 
+/** 答错后的辅助提示（figure-hints，design D5）：补出的图形、强调的线、直角标记和一句说明 */
+type Hint = {
+  shapes?: Pt[][];
+  lines?: [Pt, Pt][];
+  marks?: Pt[][];
+  note: string;
+};
+
+/** 绕点 c 旋转 180°：用来"复制一个，倒过来拼上" */
+const flip =
+  ([cx, cy]: Pt) =>
+  ([x, y]: Pt): Pt => [2 * cx - x, 2 * cy - y];
+const mid = ([ax, ay]: Pt, [bx, by]: Pt): Pt => [(ax + bx) / 2, (ay + by) / 2];
+
+/** 直角标记：在 corner 处画一个小方角，边长 m，朝向 (dx, dy) */
+const rightAngle = ([x, y]: Pt, m: number, dx: number, dy: number): Pt[] => [
+  [x + dx * m, y],
+  [x + dx * m, y + dy * m],
+  [x, y + dy * m],
+];
+
+export function hintFor(f: FigureParams, d: Drawing): Hint {
+  switch (f.shape) {
+    case 'parallelogram': {
+      const [top, , , bottomLeft] = d.outline as [Pt, Pt, Pt, Pt];
+      const foot: Pt = [top[0], bottomLeft[1]];
+      return {
+        lines: [[top, foot]],
+        marks: [rightAngle(foot, d.height * 0.12, 1, -1)],
+        note: '高要和底垂直，量的是两条底之间的距离',
+      };
+    }
+    case 'triangle':
+    case 'right-triangle': {
+      const [a, b, c] = d.outline as [Pt, Pt, Pt];
+      const copy = [a, b, c].map(flip(mid(a, b)));
+      return {
+        shapes: [copy],
+        note:
+          f.shape === 'triangle'
+            ? '复制一个同样的三角形，倒过来拼上，就成了平行四边形'
+            : '复制一个同样的三角形，倒过来拼上，就成了长方形',
+      };
+    }
+    case 'trapezoid': {
+      const [, tr, br] = d.outline as [Pt, Pt, Pt, Pt];
+      return {
+        shapes: [d.outline.map(flip(mid(tr, br)))],
+        note: '两个同样的梯形，一个倒过来拼上，就成了平行四边形',
+      };
+    }
+    case 'house': {
+      const roof = d.outline.slice(0, 3);
+      return {
+        shapes: [roof],
+        lines: [[d.outline[0]!, d.outline[2]!]],
+        note: '沿虚线分成上面的三角形和下面的长方形，分别算再相加',
+      };
+    }
+    case 'l-shape': {
+      const [, cut, inner, right] = d.outline as Pt[];
+      return {
+        shapes: [[cut!, [right![0], 0], right!, inner!]],
+        note: '先补成一个大长方形，再减去补上的那一块',
+      };
+    }
+  }
+}
+
 const fmt = (n: number, unit: string) => `${n} ${unit}`;
 
 function draw(f: FigureParams): Drawing {
@@ -184,22 +253,35 @@ function draw(f: FigureParams): Drawing {
   }
 }
 
-export function Figure({ figure }: { figure: FigureParams }) {
+export function Figure({ figure, hint = false }: { figure: FigureParams; hint?: boolean }) {
   const d = draw(figure);
-  const scale = Math.min((W - 2 * PAD) / d.width, (H - 2 * PAD) / d.height);
-  const ox = (W - d.width * scale) / 2;
-  const oy = (H - d.height * scale) / 2;
+  const h = hint ? hintFor(figure, d) : null;
+  // 补出的图形可能超出原图，取并集作为画布范围
+  const all = [d.outline, ...(h?.shapes ?? [])].flat();
+  const minX = Math.min(0, ...all.map(([x]) => x));
+  const maxX = Math.max(d.width, ...all.map(([x]) => x));
+  const minY = Math.min(0, ...all.map(([, y]) => y));
+  const maxY = Math.max(d.height, ...all.map(([, y]) => y));
+  const bw = maxX - minX;
+  const bh = maxY - minY;
+  const scale = Math.min((W - 2 * PAD) / bw, (H - 2 * PAD) / bh);
+  const ox = (W - bw * scale) / 2 - minX * scale;
+  const oy = (H - bh * scale) / 2 - minY * scale;
   const p = ([x, y]: Pt): Pt => [ox + x * scale, oy + y * scale];
   const points = (pts: Pt[]) => pts.map((pt) => p(pt).join(',')).join(' ');
+  const center = p([d.width / 2, d.height / 2]);
 
-  return (
+  const svg = (
     <svg
       viewBox={`0 0 ${W} ${H}`}
       role="img"
-      aria-label="题目图形"
+      aria-label={h ? `题目图形。提示：${h.note}` : '题目图形'}
       className="figure"
       data-shape={figure.shape}
     >
+      {h?.shapes?.map((pts, i) => (
+        <polygon key={`hs${i}`} points={points(pts)} className="figure-hint-shape" />
+      ))}
       <polygon points={points(d.outline)} className="figure-shape" />
       {d.extra?.map((pts, i) => (
         <polyline key={i} points={points(pts)} className="figure-line" />
@@ -209,6 +291,14 @@ export function Figure({ figure }: { figure: FigureParams }) {
         const [x2, y2] = p(b);
         return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} className="figure-dashed" />;
       })}
+      {h?.lines?.map(([a, b], i) => {
+        const [x1, y1] = p(a);
+        const [x2, y2] = p(b);
+        return <line key={`hl${i}`} x1={x1} y1={y1} x2={x2} y2={y2} className="figure-hint-line" />;
+      })}
+      {h?.marks?.map((pts, i) => (
+        <polyline key={`hm${i}`} points={points(pts)} className="figure-hint-mark" />
+      ))}
       {d.labels.map((l, i) => {
         const [x, y] = p(l.at);
         const anchor = l.anchor ?? 'middle';
@@ -222,10 +312,17 @@ export function Figure({ figure }: { figure: FigureParams }) {
         );
       })}
       {d.areaLabel && (
-        <text x={W / 2} y={H / 2 + 5} textAnchor="middle" className="figure-area">
+        <text x={center[0]} y={center[1] + 5} textAnchor="middle" className="figure-area">
           {d.areaLabel}
         </text>
       )}
     </svg>
+  );
+  if (!h) return svg;
+  return (
+    <figure className="figure-with-hint">
+      {svg}
+      <figcaption className="figure-hint-note">{h.note}</figcaption>
+    </figure>
   );
 }

@@ -1,0 +1,94 @@
+.guide {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+.guide-dim {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 38, 46, 0.62);
+}
+.guide-spotlight {
+  position: fixed;
+  border-radius: 24px;
+  box-shadow:
+    0 0 0 3px var(--light-soft),
+    0 0 0 4000px rgba(30, 38, 46, 0.62);
+  transition:
+    top 300ms ease,
+    left 300ms ease,
+    width 300ms ease,
+    height 300ms ease;
+  pointer-events: none;
+}
+.guide-dialog {
+  position: fixed;
+  width: min(440px, calc(100vw - 32px));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px 20px;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.45);
+  animation: guide-in 260ms ease-out both;
+}
+.guide-dialog.centered {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.guide-dialog .companion-avatar {
+  width: 72px;
+}
+.guide-dialog .companion-title {
+  margin: 0;
+  font-size: 21px;
+}
+.guide-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.guide-dots {
+  display: flex;
+  gap: 6px;
+}
+.guide-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--line-strong);
+}
+.guide-dots span.on {
+  width: 22px;
+  background: var(--ink);
+}
+button.primary.small {
+  min-height: 44px;
+  padding: 0 22px;
+  font-size: 15px;
+}
+@keyframes guide-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* 手机：对话框固定在底部 */
+@media (max-width: 640px) {
+  .guide-dialog,
+  .guide-dialog.centered {
+    top: auto !important;
+    left: 16px !important;
+    right: 16px;
+    bottom: 16px;
+    width: auto;
+    transform: none !important;
+  }
+}

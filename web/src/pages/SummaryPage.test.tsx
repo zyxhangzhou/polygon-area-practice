@@ -207,3 +207,22 @@ describe('总结页', () => {
     expect(await screen.findByRole('region', { name: '统计' })).toBeInTheDocument();
   });
 });
+
+describe('小镇全景（H）', () => {
+  it('全部做对：四座建筑都点亮，标题说明整座小镇亮了，圆圆庆祝', async () => {
+    open(summaryResponse());
+    const panorama = await screen.findByRole('region', { name: '小镇全景' });
+    expect(within(panorama).getByRole('heading')).toHaveTextContent('整座小镇都亮起来了');
+    for (const name of ['面包店', '帐篷营地', '小桥', '小镇广场'])
+      expect(within(panorama).getByRole('img', { name: `${name}：已点亮` })).toBeInTheDocument();
+    expect(panorama.querySelector('.entering, .lighting')).toBeNull();
+    expect(screen.getByRole('img', { name: '圆圆：举手庆祝' })).toBeInTheDocument();
+  });
+
+  it('有没做对的题：对应关卡停在施工中', async () => {
+    open(summaryResponse({ 12: { outcome: 'not_yet', reason: 'unanswered' } }));
+    const panorama = await screen.findByRole('region', { name: '小镇全景' });
+    expect(within(panorama).getByRole('heading')).toHaveTextContent('这次点亮了 3 座建筑');
+    expect(within(panorama).getByRole('img', { name: '小镇广场：施工中 2/3' })).toBeInTheDocument();
+  });
+});
