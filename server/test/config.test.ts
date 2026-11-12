@@ -51,6 +51,19 @@ describe('loadConfig', () => {
     ).toThrow(/PORT/);
   });
 
+  it('TRUST_PROXY_HOPS 默认 0，接受非负整数；默认启用限流', () => {
+    const base = { DATABASE_URL: 'postgres://u:p@localhost:5432/db' };
+    expect(loadConfig(base).trustProxyHops).toBe(0);
+    expect(loadConfig({ ...base, TRUST_PROXY_HOPS: '2' }).trustProxyHops).toBe(2);
+    expect(loadConfig(base).rateLimit).toEqual({ apiPerMinute: 300, learnersPerHour: 60 });
+  });
+
+  it.each(['-1', 'abc', '1.5', '', '11'])('TRUST_PROXY_HOPS=%j 被拒绝', (hops) => {
+    expect(() =>
+      loadConfig({ DATABASE_URL: 'postgres://u:p@localhost:5432/db', TRUST_PROXY_HOPS: hops }),
+    ).toThrow(/TRUST_PROXY_HOPS/);
+  });
+
   it('DATABASE_URL 只有协议头时被拒绝', () => {
     expect(() => loadConfig({ DATABASE_URL: 'postgres://' })).toThrow(/DATABASE_URL/);
   });

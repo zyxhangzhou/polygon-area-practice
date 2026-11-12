@@ -64,6 +64,8 @@ const INITIAL: PracticeState = {
   notice: null,
 };
 
+export const RATE_LIMITED = 'RATE_LIMITED';
+
 export const UNCERTAIN_MESSAGE = '暂时没法确认有没有提交成功，请再点一次（不会重复记录）';
 
 /**
@@ -243,6 +245,11 @@ export class PracticeStore {
             continue;
           }
           this.set({ pendingRetry: job, notice: UNCERTAIN_MESSAGE });
+          break;
+        }
+        // 被限流：请求一定没有被处理。写请求留在队首，等学生"再提交一次"（同一个键）
+        if (res.kind === 'rejected' && res.code === RATE_LIMITED && job.type !== 'event') {
+          this.set({ pendingRetry: job, notice: res.message });
           break;
         }
         this.queue.shift();

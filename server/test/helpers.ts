@@ -13,6 +13,9 @@ export function buildTestApp(overrides: Partial<AppOptions> = {}) {
     logLevel: 'silent',
     nodeEnv: 'test',
     webDistDir: undefined,
+    trustProxyHops: 0,
+    // 其他测试会发出大量请求；限流单独在 rate-limit.test.ts 中测试
+    rateLimit: null,
     ...overrides,
   });
 }

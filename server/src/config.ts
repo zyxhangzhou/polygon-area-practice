@@ -18,6 +18,13 @@ const EnvSchema = z.object({
     .default(3000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  // 服务前面有几层可信的反向代理；0 表示直接使用连接的对端地址（design D3）
+  TRUST_PROXY_HOPS: z
+    .string()
+    .regex(/^\d+$/, 'TRUST_PROXY_HOPS 必须是非负整数')
+    .transform(Number)
+    .pipe(z.number().max(10, 'TRUST_PROXY_HOPS 不能超过 10'))
+    .default(0),
   // 相对路径按进程工作目录转为绝对路径（@fastify/static 只接受绝对路径）
   WEB_DIST_DIR: z
     .string()
@@ -33,7 +40,19 @@ export type Config = {
   nodeEnv: z.infer<typeof EnvSchema>['NODE_ENV'];
   /** 生产模式下托管的前端构建目录；非生产模式为 undefined（由 Vite 提供页面） */
   webDistDir: string | undefined;
+  trustProxyHops: number;
+  /** 请求频率上限；null 表示不限（只用于测试） */
+  rateLimit: RateLimits | null;
 };
+
+export type RateLimits = {
+  /** /api/ 下每个 IP 每分钟的请求数 */
+  apiPerMinute: number;
+  /** 每个 IP 每小时创建学生的次数 */
+  learnersPerHour: number;
+};
+
+export const DEFAULT_RATE_LIMITS: RateLimits = { apiPerMinute: 300, learnersPerHour: 60 };
 
 export class ConfigError extends Error {
   constructor(public readonly issues: string[]) {
@@ -57,5 +76,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     logLevel: e.LOG_LEVEL,
     nodeEnv: e.NODE_ENV,
     webDistDir: e.NODE_ENV === 'production' ? e.WEB_DIST_DIR : undefined,
+    trustProxyHops: e.TRUST_PROXY_HOPS,
+    rateLimit: DEFAULT_RATE_LIMITS,
   };
 }

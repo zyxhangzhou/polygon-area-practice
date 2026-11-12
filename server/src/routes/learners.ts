@@ -10,8 +10,18 @@ const LearnerBody = z
   .optional()
   .default({});
 
-export async function learnerRoutes(app: FastifyInstance) {
-  app.post('/api/learners', { bodyLimit: BODY_LIMIT }, async (req, reply) => {
+const HOUR_MS = 60 * 60 * 1000;
+
+export async function learnerRoutes(
+  app: FastifyInstance,
+  { learnersPerHour }: { learnersPerHour?: number },
+) {
+  // 创建学生另有更严格的上限（每小时），代替全局的每分钟上限
+  const config =
+    learnersPerHour === undefined
+      ? undefined
+      : { rateLimit: { max: learnersPerHour, timeWindow: HOUR_MS } };
+  app.post('/api/learners', { bodyLimit: BODY_LIMIT, config }, async (req, reply) => {
     const body = parse(LearnerBody, req.body);
     return reply.code(201).send(await createLearner(app.db, body.nickname ?? null));
   });

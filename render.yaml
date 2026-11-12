@@ -1,0 +1,35 @@
+# Render Blueprint：一个 Docker Web 服务 + 一个 Postgres（都用免费档，同一区域）
+# 首次部署、回滚与排障见 docs/deploy.md。仓库中不写任何连接串或密码。
+services:
+  - type: web
+    name: polygon-area-practice
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    # GitHub 上的检查（CI）通过后才部署
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: polygon-area-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      # 服务前面可信的代理层数：Cloudflare 边缘 → Render 内网代理 → 本服务，实测见 docs/deploy.md
+      - key: TRUST_PROXY_HOPS
+        value: '3'
+      # PORT 由 Render 注入
+
+databases:
+  - name: polygon-area-db
+    databaseName: polygon
+    plan: free
+    region: singapore
+    postgresMajorVersion: '17'
+    # 只允许 Render 内网连接；需要 pg_dump 时在控制台临时加入本机 IP
+    ipAllowList: []
