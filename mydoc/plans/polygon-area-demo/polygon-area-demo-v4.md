@@ -37,7 +37,7 @@
 | 5 | E | 答题主流程前端 | `practice-ui`（PR #5） | D | ✅ merged #5（archived） |
 | 6 | F | 学习总结页 | `summary-ui`（已归档 `2026-11-12-summary-ui`） | D, E | ✅ merged #6（archived） |
 | 7 | G | 首次上线 Render | `deploy-render`（已归档 `2026-11-12-deploy-render`） | E | ✅ merged #7（archived） |
-| 8 | H | 图形小镇与圆圆 | `town-and-companion`（分支 `change/town-and-companion`） | E | in progress（re-scoped v4） |
+| 8 | H | 图形小镇与圆圆 | `town-and-companion`（分支 `change/town-and-companion`，PR #8） | E | PR open（re-scoped v4） |
 | 9 | I | 视频解析 | `video-explanations` | E | planned（视 H 完成后的时间决定） |
 | 10 | J | 文档与交付 | `docs-and-delivery` | A–I | planned |
 
@@ -175,3 +175,5 @@
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · G 部署到 Render（Blueprint）；线上冒烟检查与浏览器完整练习通过；实测代理层数为 3（Cloudflare → Render 内网代理 → 服务）
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · G squash merge 为 5a2607d；OpenSpec 归档为 `2026-11-12-deploy-render`（在 H 分支上提交）
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · v4：H re-scoped（精致视觉与动画，先出 Claude Design 视觉稿），I 降为视时间而定；H 开始：分支 `change/town-and-companion`
+- 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · H 视觉稿（Claude Design）经用户确认；字体选择自托管思源宋体（仅标题）
+- 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · H 实现完成，开 PR #8，CI 两个 job 通过；浏览器实跑与截图见 `docs/verification.md`、`docs/screenshots/h/`；等待用户评审合并

@@ -17,7 +17,7 @@
 ## 3. 验证与文档
 
 - [x] 3.1 浏览器实跑：完整练习一遍，截图首页、答错提示、点亮、总结页、手机宽度（首页、总结页、答题页），以及其余 5 种图形的提示，并开启"减少动态效果"再看一次；截图存入 `docs/screenshots/h/`，记入 `docs/verification.md`
-- [ ] 3.2 `npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
+- [x] 3.2 `npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
 - [ ] 3.3 合并后线上冒烟检查通过，在线上地址看一遍
 
 ## Workflow follow-up
