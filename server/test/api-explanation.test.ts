@@ -59,6 +59,8 @@ describe('GET explanation', () => {
     const res = await c.explanation(4);
     expect(res.status).toBe(200);
     expect(res.body.videoUrl).toBe('/videos/q04.mp4');
+    // 解析文字带重点标记，由前端显示（explanation-highlights）
+    expect(res.body.steps[0]).toContain('{c:底是 10 cm}');
   });
 
   it('每关第 1 题有视频地址：第 1 题答错后返回 q01', async () => {

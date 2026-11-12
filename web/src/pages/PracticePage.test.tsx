@@ -580,6 +580,27 @@ describe('视频讲解（I）', () => {
     expect(screen.getByRole('button', { name: '看视频讲解' })).toBeInTheDocument();
   });
 
+  it('图文解析的重点：条件、公式、关键分别有底色，步骤小标题分开，页面上没有花括号', async () => {
+    openQ4();
+    await userEvent.click(await screen.findByRole('button', { name: '看图文解析' }));
+    const region = await screen.findByRole('region', { name: '图文解析' });
+    const kinds = (k: string) =>
+      [...region.querySelectorAll(`mark[data-kind="${k}"]`)].map((m) => m.textContent);
+    expect(kinds('c')).toEqual(['底是 10 cm', '高是 6 cm']);
+    expect(kinds('f')).toEqual(['三角形面积 = 底 × 高 ÷ 2', '10 × 6 ÷ 2 = 30（cm²）']);
+    expect(kinds('k')).toEqual(['一半', '别忘了 ÷ 2']);
+    expect(within(region).getByRole('list', { name: '颜色说明' })).toHaveTextContent(
+      '条件公式和算式关键',
+    );
+    expect([...region.querySelectorAll('.step-label')].map((e) => e.textContent)).toEqual([
+      '看图找条件',
+      '想一想',
+      '代入计算',
+    ]);
+    expect(region.querySelector('.tip')).toHaveTextContent(/^易错提醒三角形面积一定别忘了 ÷ 2！/);
+    expect(region.textContent).not.toMatch(/[{}]/);
+  });
+
   it('没有视频的题只显示"看图文解析"', async () => {
     open(2, sessionView({ 2: 'wrong' }));
     await screen.findByText('这道题上次没答对，再试试吧。');

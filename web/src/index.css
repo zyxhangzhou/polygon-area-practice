@@ -577,6 +577,127 @@ button.link {
   padding-top: 16px;
   line-height: 1.8;
 }
+.explanation h2 {
+  margin-bottom: 4px;
+}
+
+/* 重点标记（explanation-highlights D2）：荧光笔式的半高底色，颜色之外还有字重区分 */
+.explanation {
+  --hl-c: #d3e3ec;
+  --hl-f: #fbe0a0;
+  --hl-k: #f5d3c2;
+}
+mark.hl {
+  color: inherit;
+  padding: 0 3px;
+  border-radius: 3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+mark.hl-c {
+  background: linear-gradient(transparent 38%, var(--hl-c) 38%);
+}
+mark.hl-f {
+  background: linear-gradient(transparent 38%, var(--hl-f) 38%);
+  font-weight: 600;
+}
+mark.hl-k {
+  background: linear-gradient(transparent 38%, var(--hl-k) 38%);
+  font-weight: 600;
+  color: var(--clay-text);
+}
+.hl-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.hl-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hl-swatch {
+  display: inline-block;
+  width: 22px;
+  height: 10px;
+  border-radius: 3px;
+}
+.hl-swatch.hl-c {
+  background: var(--hl-c);
+}
+.hl-swatch.hl-f {
+  background: var(--hl-f);
+}
+.hl-swatch.hl-k {
+  background: var(--hl-k);
+}
+
+/* 步骤：圆形编号，小标题单独一行（D3） */
+.explanation .steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+.explanation .steps li {
+  counter-increment: step;
+  position: relative;
+  padding: 10px 0 10px 38px;
+  border-top: 1px dashed var(--line);
+  font-size: 16px;
+  line-height: 1.9;
+}
+.explanation .steps li:first-child {
+  border-top: 0;
+}
+.explanation .steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 14px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--mist);
+  color: #fff;
+  font-size: 13px;
+  line-height: 24px;
+  text-align: center;
+}
+.step-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mist);
+  letter-spacing: 0.5px;
+  line-height: 1.6;
+}
+.step-body {
+  display: block;
+}
+
+/* 易错提醒提示框；浅陶土底上的关键标记用更深一级的底色 */
+.explanation .tip {
+  margin: 14px 0 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--clay-soft);
+  font-size: 15px;
+  line-height: 1.8;
+}
+.explanation .tip mark.hl-k {
+  --hl-k: #ecbfa9;
+}
+.tip-label {
+  margin-right: 8px;
+  font-weight: 600;
+  color: var(--clay-text);
+}
 
 /* ---------- 首页 ---------- */
 

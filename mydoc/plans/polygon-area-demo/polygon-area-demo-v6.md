@@ -1,3 +1,5 @@
+> ⚠️ Superseded by [v7](polygon-area-demo-v7.md) — 新增 M（图文解析重点标记）。
+
 # 多边形面积练习 Demo — v6
 
 - Status: completed
