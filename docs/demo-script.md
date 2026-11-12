@@ -30,7 +30,7 @@
 |---|---|
 | 统计口径 | README"统计口径"：一次做对要求第 1 次正确且之前没看过解析；先后关系按 `seq` 判断；非法输入不计次 |
 | 可靠性 | 幂等键 + 唯一约束 + 行锁；结果不确定时用同一个键重试；`api-flow.test.ts` 的 9 个场景 |
-| 测试与 CI | 后端 306 个（真实 PostgreSQL）、前端 187 个；GitHub Actions 的运行记录 |
+| 测试与 CI | 后端 306 个（真实 PostgreSQL）、前端 193 个；GitHub Actions 的运行记录 |
 | 部署与排障 | Render Blueprint；用冒烟检查验收；日志按 `reqId` 定位；代理层数的实测（1 → 2 → 3） |
 | AI 协同 | [ai-collaboration.md](ai-collaboration.md) 的 3 段记录；AI 出错是怎么被测试、实跑和评审发现的 |
 

@@ -1,3 +1,5 @@
+> ⚠️ Superseded by [v5](polygon-area-demo-v5.md) — 新增 K（视频字幕与画面安全区）。
+
 # 多边形面积练习 Demo — v4
 
 - Status: completed
