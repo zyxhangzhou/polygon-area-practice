@@ -6,7 +6,7 @@
 ## Requirements
 
 ### Requirement: 解析的访问规则
-`GET /api/sessions/:id/questions/:qid/explanation` SHALL 在该题状态为 `wrong`、`skipped` 或 `solved`，或会话已结束时返回解析：分步讲解、易错提醒、视频地址（没有视频时为空）。其他情况 MUST 返回 `403 EXPLANATION_LOCKED`。获取解析 MUST NOT 产生任何学习记录。
+`GET /api/sessions/:id/questions/:qid/explanation` SHALL 在该题状态为 `wrong`、`skipped` 或 `solved`，或会话已结束时返回解析：分步讲解、易错提醒、视频地址（没有视频时为空）。分步讲解和易错提醒的文字 MAY 包含重点标记（格式见 `question-bank` 的"解析中的重点标记"），由前端负责显示。其他情况 MUST 返回 `403 EXPLANATION_LOCKED`。获取解析 MUST NOT 产生任何学习记录。
 
 #### Scenario: 未作答时被拒绝
 - **WHEN** 第 1 题还没有作答和跳过，请求它的解析
@@ -26,7 +26,11 @@
 
 #### Scenario: 视频地址
 - **WHEN** 获取第 4 题的解析
-- **THEN** 响应中有视频地址；第 1 题的视频地址为空
+- **THEN** 响应中有视频地址；第 2 题（没有视频）的视频地址为空
+
+#### Scenario: 带重点标记的文字
+- **WHEN** 获取第 4 题的解析
+- **THEN** 分步讲解中含有 `{c:底是 10 cm}` 这样的重点标记
 
 ### Requirement: 学习行为上报
 `POST /api/sessions/:id/events`（请求体 `{ questionId, type, clientEventId, payload? }`）SHALL 保存一条学习事件并返回 `201`；同一 `clientEventId` 重复上报 MUST 只保存一条，返回 `200`。事件类型 MUST 是 `explanation_text_opened`、`video_started`、`video_completed` 之一，否则返回 `400 VALIDATION_ERROR`。只有该题的解析可以获取时才接受上报，否则返回 `403 EXPLANATION_LOCKED`。`payload` 可选，MUST 是不超过 1 KB 的 JSON 对象。
