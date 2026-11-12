@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent, type Ref } from 'react';
 import type { QuestionDetail, SessionView } from '../api/types';
 import { Bear } from '../companion/Bear';
 import { feedbackLine, type Line } from '../companion/lines';
@@ -231,6 +231,17 @@ function QuestionPanel({ session, qid }: { session: SessionView; qid: number }) 
 
   // 图形提示：后端判为答错后出现；"再试一次"时保留，做对后消失；换题或刷新（重新挂载）时不显示
   const [hint, setHint] = useState(false);
+  const panelRef = useRef<HTMLElement>(null);
+  const companionRef = useRef<HTMLElement>(null);
+  // 窄屏时圆圆和建筑排在题目下面：出现新的判题结果时把它们滚到可见处，免得错过反馈和建造
+  const resultShown = feedback?.kind === 'result' ? feedback : null;
+  useEffect(() => {
+    if (!resultShown || !window.matchMedia?.('(max-width: 900px)').matches) return;
+    // 答对：看建筑长高；答错：只露出圆圆的话，尽量让上方的图形提示留在屏幕上
+    const target = resultShown.result.correct ? panelRef.current : companionRef.current;
+    target?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  }, [resultShown]);
+
   const [seenFeedback, setSeenFeedback] = useState(feedback);
   if (feedback !== seenFeedback) {
     setSeenFeedback(feedback);
@@ -351,8 +362,11 @@ function QuestionPanel({ session, qid }: { session: SessionView; qid: number }) 
       </article>
 
       <aside className="practice-aside">
-        <CompanionCard line={companionLine(feedback, status, stage.buildingName)} />
-        <StagePanel session={session} stageIndex={stageIndex} />
+        <CompanionCard
+          ref={companionRef}
+          line={companionLine(feedback, status, stage.buildingName)}
+        />
+        <StagePanel ref={panelRef} session={session} stageIndex={stageIndex} />
       </aside>
     </div>
   );
@@ -397,9 +411,10 @@ function companionLine(
   };
 }
 
-function CompanionCard({ line }: { line: Line }) {
+function CompanionCard({ ref, line }: { ref?: Ref<HTMLElement>; line: Line }) {
   return (
     <section
+      ref={ref}
       className={`card companion-card ${line.mood === 'cheer' ? 'cheer' : ''}`}
       aria-label="圆圆的话"
     >
@@ -418,12 +433,24 @@ function CompanionCard({ line }: { line: Line }) {
 }
 
 /** 当前关卡的建筑：常驻在答题页，作答后随后端进度长高（town-display） */
-function StagePanel({ session, stageIndex }: { session: SessionView; stageIndex: number }) {
+function StagePanel({
+  ref,
+  session,
+  stageIndex,
+}: {
+  ref?: Ref<HTMLElement>;
+  session: SessionView;
+  stageIndex: number;
+}) {
   const stage = session.stages[stageIndex]!;
   const { status, level } = buildingState(stage);
   const left = stage.total - stage.solvedCount;
   return (
-    <section className={`card stage-panel ${status}`} aria-label={`${stage.buildingName}的进度`}>
+    <section
+      ref={ref}
+      className={`card stage-panel is-${status}`}
+      aria-label={`${stage.buildingName}的进度`}
+    >
       <div className="stage-panel-head">
         <h2>{stage.buildingName}</h2>
         <span className="stage-panel-state">{statusText(status, level, stage.total)}</span>

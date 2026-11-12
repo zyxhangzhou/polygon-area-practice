@@ -33,9 +33,10 @@
 
 ### D1 建筑组件
 
-- `web/src/town/Building.tsx` 导出 `<Building kind stage lit animate />`：
+- `web/src/town/Building.tsx` 导出 `<Building kind name status level />`：
   - `kind`：`bakery`、`camp`、`bridge`、`plaza`，按关卡顺序对应；
-  - `stage`：0–3。
+  - `status`：`locked`、`building`、`lit`；`level`：0–3。
+  - `buildingState(stage)` 把后端的关卡进度换算为 `status` 和 `level`。
 - 每座建筑的 SVG 照视觉稿分为几组：
   - `plot`：待建的空地；
   - `layer1` 到 `layer3`：三层；
@@ -48,7 +49,7 @@
 
 ### D2 什么时候播放动画
 
-- `Building` 用 `useRef` 记住上一次渲染的 `stage` 和 `lit`：
+- `Building` 用 state 记住上一次的层数和点亮状态，在渲染中比较（React 推荐的"随 props 调整 state"写法）：
   - 首次挂载时不播放；
   - 之后 `stage` 变大时，给新出现的层加 `entering` class；
   - `lit` 从 false 变为 true 时，给 `glow` 和窗户加 `lighting` class。
@@ -84,11 +85,12 @@
 ### D5 图形辅助线
 
 - 修改 `Figure.tsx`，增加 `hint?: boolean`：
-  - `draw()` 为每种形状返回 `hint: { shapes: Pt[][]; dashed: [Pt, Pt][]; note: string }`；
-  - 补出的图形用虚线描边加淡金色填充；
+  - `hintFor()` 为每种形状返回 `{ shapes?, lines?, marks?, note }`：补出的图形、强调的线、直角标记和一句说明；
+  - 补出的图形用虚线描边加淡金色填充，画在原图之上（半透明），与原图重叠时也能看见；
   - `note` 同时显示在图形下方，并作为 SVG 说明的一部分。
 - 画布的宽度和缩放要把补出的图形算进去，避免裁切。
-- 显示条件：当前题的 `feedback` 为答错时传 `hint`。切换题目、再次提交或刷新后 `feedback` 被清空，提示随之消失，不需要另外保存状态。
+- 显示条件：后端判为答错后出现。学生改答案或点"再试一次"时保留，做对后消失；换题或刷新时组件重新挂载，提示不显示。
+- 窄屏（≤ 900 px）时圆圆和建筑排在题目下方。出现新的判题结果时滚动到可见处：答对时滚到建筑面板，答错时只滚到圆圆卡片，尽量让图形提示留在屏幕上。
 - 各形状的提示文字都不含数字结果，测试检查不出现答案。
 
 ### D6 首页小镇地图与引导
@@ -106,7 +108,7 @@
   - 高亮用一个绝对定位的框加大范围的 `box-shadow` 遮罩，定位到目标元素（`data-guide="plot"` 等）的 `getBoundingClientRect()`；
   - 窗口大小改变时重新计算。
 - 是否看过保存在 `localStorage` 的 `polygon.guideSeen`。这是本机的界面偏好，不是学习数据。读写放在 try/catch 里，读失败时按"看过"处理，避免每次都弹出。
-- 焦点：打开时聚焦"下一步"；`Esc` 等同于跳过；关闭后聚焦主按钮。
+- 焦点：打开时聚焦"下一步"；`Esc` 在 `document` 上监听，焦点移出对话框也有效；关闭后聚焦主按钮。
 
 ### D7 样式与字体
 

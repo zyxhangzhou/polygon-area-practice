@@ -321,9 +321,9 @@ button.link {
   flex-direction: column;
   gap: 20px;
 }
-@media (max-width: 900px) {
-  .practice-aside {
-    order: -1;
+@media (max-width: 640px) {
+  .stage-panel .building-art {
+    max-height: 160px;
   }
 }
 
@@ -410,6 +410,7 @@ button.link {
 }
 .answer-field {
   flex: 1 1 240px;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -430,6 +431,7 @@ button.link {
 .answer-field input {
   flex: 1;
   min-width: 0;
+  width: 0;
   border: 0;
   background: transparent;
   font: 600 24px var(--font-sans);
@@ -480,7 +482,7 @@ button.link {
   flex-direction: column;
   gap: 8px;
 }
-.stage-panel.lit {
+.stage-panel.is-lit {
   background: var(--night);
   color: var(--card);
 }
@@ -498,7 +500,7 @@ button.link {
   font-size: 13px;
   color: var(--muted);
 }
-.stage-panel.lit .stage-panel-state {
+.stage-panel.is-lit .stage-panel-state {
   color: #f0d79c;
 }
 .practice-aside > * {
@@ -513,7 +515,7 @@ button.link {
   font-size: 14px;
   color: var(--ink-2);
 }
-.stage-panel.lit .stage-panel-note {
+.stage-panel.is-lit .stage-panel-note {
   color: #c9d3da;
 }
 

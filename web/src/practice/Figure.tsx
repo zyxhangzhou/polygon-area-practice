@@ -7,7 +7,7 @@ const H = 220;
 const PAD = 36;
 
 type Pt = [number, number];
-type Label = { at: Pt; text: string; anchor?: 'start' | 'middle' | 'end' };
+type Label = { at: Pt; text: string; anchor?: 'start' | 'middle' | 'end'; dy?: number };
 type Drawing = {
   /** 图形的自然尺寸（题目单位） */
   width: number;
@@ -245,7 +245,8 @@ function draw(f: FigureParams): Drawing {
         labels: [
           { at: [f.width / 2, f.height], text: fmt(f.width, u) },
           { at: [0, f.height / 2], text: fmt(f.height, u), anchor: 'end' },
-          { at: [cx + f.cutWidth / 2, f.cutHeight], text: fmt(f.cutWidth, u) },
+          // 缺口的横边在图形内部，标注放在线的下方，免得压在线上
+          { at: [cx + f.cutWidth / 2, f.cutHeight], text: fmt(f.cutWidth, u), dy: 18 },
           { at: [cx, f.cutHeight / 2], text: fmt(f.cutHeight, u), anchor: 'start' },
         ],
       };
@@ -279,10 +280,11 @@ export function Figure({ figure, hint = false }: { figure: FigureParams; hint?: 
       className="figure"
       data-shape={figure.shape}
     >
+      <polygon points={points(d.outline)} className="figure-shape" />
+      {/* 提示图形画在原图之上（半透明），与原图重叠时（如小房子的屋顶）也能看见 */}
       {h?.shapes?.map((pts, i) => (
         <polygon key={`hs${i}`} points={points(pts)} className="figure-hint-shape" />
       ))}
-      <polygon points={points(d.outline)} className="figure-shape" />
       {d.extra?.map((pts, i) => (
         <polyline key={i} points={points(pts)} className="figure-line" />
       ))}
@@ -304,7 +306,7 @@ export function Figure({ figure, hint = false }: { figure: FigureParams; hint?: 
         const anchor = l.anchor ?? 'middle';
         const dx = anchor === 'start' ? 6 : anchor === 'end' ? -6 : 0;
         // 底边标注放在线下方，顶边标注放在线上方，其余垂直居中
-        const dy = l.at[1] === d.height ? 18 : l.at[1] === 0 ? -8 : 5;
+        const dy = l.dy ?? (l.at[1] === d.height ? 18 : l.at[1] === 0 ? -8 : 5);
         return (
           <text key={i} x={x + dx} y={y + dy} textAnchor={anchor} className="figure-label">
             {l.text}

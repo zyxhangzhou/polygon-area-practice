@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Bear, type Mood } from '../companion/Bear';
 import './guide.css';
 
@@ -80,12 +80,18 @@ export function Guide({ onClose }: { onClose: () => void }) {
     nextRef.current?.focus();
   }, [index]);
 
-  function onKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Escape') {
-      e.stopPropagation();
-      onClose();
-    }
-  }
+  // Esc 在整个页面上都有效：焦点 Tab 到对话框外面时也能关闭
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeRef.current();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
 
   // 对话框放在高亮区域下方；下方放不下就放上方；没有目标时居中
   const below = rect ? rect.top + rect.height + 16 : null;
@@ -99,7 +105,7 @@ export function Guide({ onClose }: { onClose: () => void }) {
     : undefined;
 
   return (
-    <div className="guide" onKeyDown={onKeyDown}>
+    <div className="guide">
       {rect ? (
         <div className="guide-spotlight" style={rect} aria-hidden="true" />
       ) : (

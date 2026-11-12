@@ -170,6 +170,8 @@ describe('首次进入引导（H）', () => {
     mockApi();
     renderApp();
     await screen.findByRole('dialog');
+    // 焦点移到对话框外面后，Esc 仍然有效
+    (document.activeElement as HTMLElement).blur();
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(storage.getGuideSeen()).toBe(true);
