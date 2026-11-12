@@ -1,6 +1,6 @@
 # 多边形面积练习 Demo — v5
 
-- Status: confirmed
+- Status: completed
 - Supersedes: v4
 - Date: 2026-11-12
 - Session: fab477d6-36b6-4a67-8f33-b1ddf1cee503
@@ -39,7 +39,7 @@
 | 8 | H | 图形小镇与圆圆 | `town-and-companion`（已归档 `2026-11-12-town-and-companion`） | E | ✅ merged #8（archived） |
 | 9 | I | 视频解析 | `video-explanations`（已归档 `2026-11-12-video-explanations`） | E | ✅ merged #9（archived） |
 | 10 | J | 文档与交付 | `docs-and-delivery`（已归档 `2026-11-12-docs-and-delivery`） | A–I | ✅ merged #10（archived） |
-| 11 | K | 视频字幕与画面安全区 | `video-caption-layout`（分支 `change/video-caption-layout`，PR #12） | I | PR open |
+| 11 | K | 视频字幕与画面安全区 | `video-caption-layout`（分支 `change/video-caption-layout`，PR #12，`243261c`） | I | merged · archived |
 
 ### A — 项目骨架
 
@@ -193,3 +193,4 @@
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · 用户补充投入时间（约 15 小时）与 AI 费用（Claude 订阅，非 Max）；J squash merge 为 a485bec；OpenSpec 归档为 `2026-11-12-docs-and-delivery`。A–J 全部完成，计划状态改为 completed
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · v5：用户测试发现视频字幕遮挡画面，新增 K；用户确认两处一起改，OpenSpec 与实现放在同一个 PR 中评审
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · K 实现完成：字幕移到视频下方，视频重新排版并通过安全区检查；浏览器中播放、暂停、全屏都没有遮挡
+- 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · K squash merge 为 243261c；自动部署没有触发，用户手动部署后线上验证通过（两段视频为新文件、前端包含视频下方字幕、冒烟检查 6 步通过）；OpenSpec 归档为 `2026-11-12-video-caption-layout`。A–K 全部完成，计划状态改为 completed
