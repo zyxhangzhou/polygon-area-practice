@@ -11,7 +11,7 @@
 
 - [x] 2.1 干净环境验证（D4），结果记入 `docs/delivery.md`
 - [x] 2.2 在线上按演示脚本演练一遍，记录发现的问题并处理
-- [ ] 2.3 `npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
+- [x] 2.3 `npm run lint`、`format:check`、`typecheck`、`build`、`test` 全部通过，推送后 CI 两个 job 通过
 
 ## Workflow follow-up
 
