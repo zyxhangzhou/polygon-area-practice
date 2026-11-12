@@ -38,8 +38,8 @@
 | 6 | F | 学习总结页 | `summary-ui`（已归档 `2026-11-12-summary-ui`） | D, E | ✅ merged #6（archived） |
 | 7 | G | 首次上线 Render | `deploy-render`（已归档 `2026-11-12-deploy-render`） | E | ✅ merged #7（archived） |
 | 8 | H | 图形小镇与圆圆 | `town-and-companion`（已归档 `2026-11-12-town-and-companion`） | E | ✅ merged #8（archived） |
-| 9 | I | 视频解析 | `video-explanations`（分支 `change/video-explanations`，PR #9） | E | PR open |
-| 10 | J | 文档与交付 | `docs-and-delivery` | A–I | planned |
+| 9 | I | 视频解析 | `video-explanations`（已归档 `2026-11-12-video-explanations`） | E | ✅ merged #9（archived） |
+| 10 | J | 文档与交付 | `docs-and-delivery`（分支 `change/docs-and-delivery`） | A–I | in progress |
 
 ### A — 项目骨架
 
@@ -180,3 +180,5 @@
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · Render Blueprint 分支改为 main（用户授权，经浏览器操作）；H squash merge 为 92b0a61，线上确认为新版本（样式含 building-art、字体切片 200），冒烟检查通过；OpenSpec 归档为 `2026-11-12-town-and-companion`（在 I 分支上提交）
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · 用户选择先做 I；旁白 TTS 选定 edge-tts（晓晓）；I 的 OpenSpec 已生成，等待评审
 - 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · I 实现完成（两段视频、播放器、事件、素材来源说明），开 PR #9，CI 两个 job 通过；浏览器实跑见 `docs/verification.md`；等待用户评审合并
+- 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · I squash merge 为 e7bc426；首次自动部署因构建约 16 分钟触发平台超时而失败（实例已在监听），用户手动重新部署后成功；线上视频 206/200、字幕与封面可访问，冒烟检查通过；OpenSpec 归档为 `2026-11-12-video-explanations`（在 J 分支上提交）
+- 2026-11-12 · fab477d6-36b6-4a67-8f33-b1ddf1cee503 · J 开始：分支 `change/docs-and-delivery`
