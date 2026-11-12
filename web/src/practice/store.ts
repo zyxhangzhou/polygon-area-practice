@@ -77,7 +77,8 @@ export class PracticeStore {
   private listeners = new Set<() => void>();
   private queue: WriteJob[] = [];
   private running = false;
-  private reportedTextOpened = new Set<number>();
+  /** 已上报的学习事件（题号 + 类型），同一题的每种事件在本页面只上报一次 */
+  private reportedEvents = new Set<string>();
   private questions = new Map<number, QuestionDetail>();
   private explanations = new Map<number, Explanation>();
   private readonly request: typeof defaultRequest;
@@ -120,7 +121,7 @@ export class PracticeStore {
   useSession(sessionId: string, session: SessionView | null = null) {
     if (this.state.sessionId !== sessionId) {
       this.queue = [];
-      this.reportedTextOpened.clear();
+      this.reportedEvents.clear();
       this.questions.clear();
       this.explanations.clear();
       this.state = { ...INITIAL, sessionId };
@@ -190,14 +191,24 @@ export class PracticeStore {
 
   /** 图文解析真正显示出来时调用；同一题在本页面只上报一次 */
   reportTextOpened(questionId: number) {
-    if (this.reportedTextOpened.has(questionId)) return;
-    this.reportedTextOpened.add(questionId);
-    this.enqueue({
-      type: 'event',
-      questionId,
-      eventType: 'explanation_text_opened',
-      key: this.newKey(),
-    });
+    this.reportEvent(questionId, 'explanation_text_opened');
+  }
+
+  /** 视频真正开始播放时调用（video-explanations） */
+  reportVideoStarted(questionId: number) {
+    this.reportEvent(questionId, 'video_started');
+  }
+
+  /** 视频播放到结尾时调用 */
+  reportVideoCompleted(questionId: number) {
+    this.reportEvent(questionId, 'video_completed');
+  }
+
+  private reportEvent(questionId: number, eventType: LearningEventType) {
+    const key = `${questionId}:${eventType}`;
+    if (this.reportedEvents.has(key)) return;
+    this.reportedEvents.add(key);
+    this.enqueue({ type: 'event', questionId, eventType, key: this.newKey() });
   }
 
   complete(endedEarly: boolean) {

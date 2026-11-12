@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionView } from '../api/types';
@@ -509,5 +509,74 @@ describe('图形小镇与圆圆（H）', () => {
     const panel = screen.getByRole('region', { name: '面包店的进度' });
     expect(within(panel).getByRole('img', { name: '面包店：已点亮' })).toBeInTheDocument();
     expect(panel.querySelector('.entering, .lighting')).toBeNull();
+  });
+});
+
+describe('视频讲解（I）', () => {
+  const stage2Wrong4 = () => sessionView({ 1: 'solved', 2: 'solved', 3: 'solved', 4: 'wrong' });
+  const events = (api: ReturnType<typeof mockApi>) =>
+    api
+      .writes()
+      .filter((c) => c.path.endsWith('/events'))
+      .map((c) => (c.body as { type: string }).type);
+
+  function openQ4() {
+    const { api } = open(4, stage2Wrong4());
+    api
+      .on('GET', /\/explanation$/, json(200, explanation(4)))
+      .on('POST', /\/events$/, json(201, { replayed: false }));
+    return api;
+  }
+
+  it('有视频的题：同时提供"看图文解析"和"看视频讲解"；没有视频的题只有图文', async () => {
+    openQ4();
+    await screen.findByText('这道题上次没答对，再试试吧。');
+    expect(screen.getByRole('button', { name: '看图文解析' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '看视频讲解' })).toBeInTheDocument();
+  });
+
+  it('没有视频的题只显示"看图文解析"', async () => {
+    open(1, sessionView({ 1: 'wrong' }));
+    await screen.findByText('这道题上次没答对，再试试吧。');
+    expect(screen.queryByRole('button', { name: '看视频讲解' })).not.toBeInTheDocument();
+  });
+
+  it('只打开不播放不上报；播放与看完各上报一次，不上报"打开图文解析"', async () => {
+    const api = openQ4();
+    await screen.findByText('这道题上次没答对，再试试吧。');
+    await userEvent.click(screen.getByRole('button', { name: '看视频讲解' }));
+    const region = await screen.findByRole('region', { name: '视频讲解' });
+    const video = region.querySelector('video')!;
+    // 字幕默认显示，不自动播放，有封面
+    const track = video.querySelector('track')!;
+    expect(track).toHaveAttribute('kind', 'captions');
+    expect(track).toHaveAttribute('src', '/videos/q04.vtt');
+    expect(track).toHaveAttribute('default');
+    expect(video).not.toHaveAttribute('autoplay');
+    expect(video).toHaveAttribute('poster', '/videos/q04.jpg');
+    expect(video.querySelector('source')).toHaveAttribute('src', '/videos/q04.mp4');
+    expect(events(api)).toEqual([]);
+
+    fireEvent.playing(video);
+    fireEvent.pause(video);
+    fireEvent.playing(video);
+    await waitFor(() => expect(events(api)).toEqual(['video_started']));
+    fireEvent.ended(video);
+    fireEvent.playing(video);
+    fireEvent.ended(video);
+    await waitFor(() => expect(events(api)).toEqual(['video_started', 'video_completed']));
+    expect(screen.queryByRole('region', { name: '图文解析' })).not.toBeInTheDocument();
+  });
+
+  it('视频加载失败：提示改看图文解析，点击后打开图文解析', async () => {
+    const api = openQ4();
+    await screen.findByText('这道题上次没答对，再试试吧。');
+    await userEvent.click(screen.getByRole('button', { name: '看视频讲解' }));
+    const region = await screen.findByRole('region', { name: '视频讲解' });
+    fireEvent.error(region.querySelector('source')!);
+    expect(await screen.findByText('视频暂时无法播放，可以先看图文解析')).toBeInTheDocument();
+    await userEvent.click(within(region).getByRole('button', { name: '看图文解析' }));
+    expect(await screen.findByRole('region', { name: '图文解析' })).toBeInTheDocument();
+    await waitFor(() => expect(events(api)).toEqual(['explanation_text_opened']));
   });
 });

@@ -1,0 +1,46 @@
+# 视频讲解的素材来源
+
+第 4 题（三角形）和第 10 题（组合图形）各有一段约 1 分钟的视频讲解，文件在 `web/public/videos/`：
+
+| 文件 | 内容 |
+|---|---|
+| `q04.mp4`、`q10.mp4` | 视频：1280×720，H.264 + AAC |
+| `q04.vtt`、`q10.vtt` | 中文字幕（WebVTT），默认显示 |
+| `q04.jpg`、`q10.jpg` | 封面：拼图完成、还没出现答案的那一刻 |
+
+## 怎么做出来的
+
+| 部分 | 来源 |
+|---|---|
+| 分镜与旁白文字 | AI（Claude）按题库的分步解析和常见错误编写，本人评审。见 `video/build.py` 中的 `q04()`、`q10()` |
+| 动画 | AI 编写的 Python 脚本，用 Pillow 逐帧绘制（2 倍尺寸后缩小以抗锯齿），配色与图形小镇一致 |
+| 数字 | 脚本从题库源码 `server/src/content/questions.ts` 读取图形参数，算出结果，并断言等于题库答案 |
+| 旁白 | [edge-tts](https://github.com/rany2/edge-tts) 7.3.1 调用微软 Edge 的在线朗读服务，语音为 `zh-CN-XiaoxiaoNeural`（晓晓），语速 -5%。这是非官方接口；只发送旁白文字（题目讲解，不含个人信息）。由本人在 edge-tts 与离线的 piper 之间试听后选定 |
+| 字体 | Noto Sans CJK SC、Noto Serif CJK SC（SIL Open Font License 1.1），从 [notofonts/noto-cjk](https://github.com/notofonts/noto-cjk) 的固定版本（Sans2.004、Serif2.003）下载，只用于渲染画面，不随仓库分发 |
+| 合成 | ffmpeg：H.264（crf 28）+ AAC 96 kbps，`+faststart` 便于边下边播 |
+
+网站运行时不依赖 TTS 服务：生成好的视频已经提交到仓库。
+
+## 重新生成
+
+需要 Python 3.12+ 和系统里的 ffmpeg、ffprobe：
+
+```bash
+python3 -m venv .venv-video && .venv-video/bin/pip install -r video/requirements.txt
+# 字体（约 60 MB，缓存到 video/.cache/，已被 .gitignore 排除）
+mkdir -p video/.cache && cd video/.cache
+curl -LO https://github.com/notofonts/noto-cjk/raw/Sans2.004/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf
+curl -LO https://github.com/notofonts/noto-cjk/raw/Sans2.004/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf
+curl -LO https://github.com/notofonts/noto-cjk/raw/Serif2.003/Serif/OTF/SimplifiedChinese/NotoSerifCJKsc-Bold.otf
+cd ../..
+.venv-video/bin/python video/build.py        # 两段都生成；也可以只传 q04 或 q10
+```
+
+每段视频生成完会打印一行检查结果（分镜数、字幕条数、字幕结束时间、视频时长、文件大小），并断言：视频与字幕时长相差小于 1 秒，文件小于 5 MB。每段约需 2 分钟。
+
+edge-tts 不可用时，可以换用离线的 [piper](https://github.com/rhasspy/piper)（`zh_CN-huayan-medium` 模型，音质较一般，模型卡上数据集授权标为 Unknown）：替换 `build.py` 中的 `speak()` 即可，其余步骤不变。
+
+## 已知限制
+
+- 视频是公开的静态文件。页面只在可以看解析时显示入口，但知道地址的人可以在答题前看到讲解和答案。演示项目可以接受。
+- 只有第 4、10 题有视频。

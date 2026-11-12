@@ -539,6 +539,28 @@ button.link {
   margin: 0;
   line-height: 1.7;
 }
+.video-panel {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.video-panel h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.video-panel video {
+  width: 100%;
+  border-radius: var(--radius);
+  background: var(--paper);
+  aspect-ratio: 16 / 9;
+}
+.video-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
 .explanation {
   border-top: 1px solid var(--line);
   padding-top: 16px;

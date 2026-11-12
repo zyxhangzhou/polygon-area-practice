@@ -9,3 +9,8 @@ coverage/
 .DS_Store
 .vscode/
 .idea/
+
+# 视频生成的字体缓存与虚拟环境（video/build.py）
+video/.cache/
+.venv-video/
+video/__pycache__/

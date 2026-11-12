@@ -3,6 +3,7 @@ import { request } from '../api/api';
 import type { QuestionDetail, SummaryResponse } from '../api/types';
 import { StoreProvider, useStore } from '../practice/context';
 import { ExplanationPanel } from '../practice/ExplanationPanel';
+import { VideoPanel } from '../practice/VideoPanel';
 import { Figure } from '../practice/Figure';
 import { LoadFailed, useLoad } from '../practice/load';
 import { startPractice } from '../practice/start';
@@ -290,6 +291,7 @@ function ReviewPanel({ q }: { q: SummaryQuestion }) {
   const store = useStore();
   const loadQuestion = useCallback(() => store.fetchQuestion(q.questionId), [store, q.questionId]);
   const { data: detail, failed, reload } = useLoad<QuestionDetail>(loadQuestion);
+  const [showVideo, setShowVideo] = useState(false);
 
   return (
     <div className="review" aria-label={`第 ${q.position} 题回看`} role="region">
@@ -304,6 +306,14 @@ function ReviewPanel({ q }: { q: SummaryQuestion }) {
         <p>正在读取题目…</p>
       )}
       <p className="attempt-summary">{attemptSummary(q.facts)}</p>
+      {detail?.hasVideo && (
+        <div className="actions">
+          <button onClick={() => setShowVideo((v) => !v)}>
+            {showVideo ? '收起视频讲解' : '看视频讲解'}
+          </button>
+        </div>
+      )}
+      {showVideo && <VideoPanel qid={q.questionId} onShowText={() => setShowVideo(false)} />}
       <ExplanationPanel qid={q.questionId} />
     </div>
   );
