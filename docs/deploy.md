@@ -117,6 +117,7 @@ curl -s -o /dev/null -H 'X-Forwarded-For: 203.0.113.9' https://<服务地址>/ap
 |---|---|
 | 部署卡在健康检查，最后失败 | 看这次部署的启动日志：<br>- "数据库准备失败"：数据库还没就绪或连接串不对，检查 `polygon-area-db` 的状态；<br>- "配置错误"：按提示检查环境变量。 |
 | 部署失败，日志最后是 `Timed out after waiting for internal health check`，但前面已有 `Server listening` | 构建阶段太慢（免费档有时要十几分钟），整次部署超时，实例其实已经启动。线上仍运行上一个版本。在服务页点 **Manual Deploy → Deploy latest commit** 重试；仍然很慢时选 **Clear build cache & deploy**。2026-11-12 部署 I 时遇到过一次，重试后成功 |
+| PR 合并后、main 的 CI 也通过了，但 Render 的 Events 里一直没有新的部署 | `autoDeployTrigger: checksPass` 偶尔没有被触发。线上仍运行上一个版本。在服务页点 **Manual Deploy → Deploy latest commit**，部署后用冒烟检查和新文件的大小确认。2026-11-12 合并 K（`243261c`）后遇到过一次 |
 | 页面打开很慢 | 实例在休眠，等待冷启动（见已知限制）。 |
 | 学生看到"操作太频繁了" | 同一 IP 超出频率上限，`Retry-After` 秒后自动恢复。如果很多学生共用一个出口 IP，看日志中 429 的 `remoteAddress` 是否都相同；都相同时检查 `TRUST_PROXY_HOPS`。 |
 | 冒烟检查第 2 步失败 | 镜像中缺少前端构建产物，检查构建日志中 `npm run build` 是否成功。 |
